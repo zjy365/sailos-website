@@ -47,15 +47,16 @@ export default function Header({ lang }: { lang: string }) {
               </span>
             </Link>
             <div className="hidden items-center gap-x-5 text-sm font-medium lg:flex">
-              {HeaderLinks.map((link) => (
-                <Link
-                  key={link.text}
-                  href={link.url}
-                  className="rounded-md px-2 py-1 hover:bg-[#0306070D]"
-                >
-                  {link.text}
-                </Link>
-              ))}
+              {HeaderLinks?.length > 1 &&
+                HeaderLinks.map((link: any) => (
+                  <Link
+                    key={link.text}
+                    href={link.url}
+                    className="rounded-md px-2 py-1 hover:bg-[#0306070D]"
+                  >
+                    {link.text}
+                  </Link>
+                ))}
             </div>
           </div>
 
@@ -116,7 +117,7 @@ export default function Header({ lang }: { lang: string }) {
                     </div>
 
                     <div className="flex flex-col gap-y-2">
-                      {HeaderLinks.map((link) => (
+                      {HeaderLinks.map((link: any) => (
                         <Link
                           key={link.text}
                           href={link.url}

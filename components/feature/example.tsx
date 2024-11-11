@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 import { AnimateElement } from '../ui/animated-wrapper';
+import { getAssetPath } from '@/lib/utils';
 
 const data = [
   {
@@ -122,7 +123,7 @@ export default function Example() {
             </div>
           </AnimateElement>
           <img
-            src="/images/example.png"
+            src={getAssetPath('/images/example.png')}
             alt="Example"
             className="ml-auto block h-[312px] w-[478px] object-cover"
           />

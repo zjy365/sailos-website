@@ -1,10 +1,10 @@
 import { SiteConfig } from '@/types';
 
 export const siteConfig: SiteConfig = {
-  name: 'Sailos',
+  name: 'Sealos',
   author: 'zjy365',
-  description: 'sailos',
-  keywords: ['sailos', 'Next.js'],
+  description: 'sealos',
+  keywords: ['sealos', 'Next.js'],
   url: {
     base: process.env.NEXT_PUBLIC_APP_URL || '',
     author: '',

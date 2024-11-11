@@ -2,9 +2,10 @@
 import React, { useCallback, useState } from 'react';
 import { AnimateElement } from '../ui/animated-wrapper';
 import Image from 'next/image';
+import { getAssetPath } from '@/lib/utils';
 
 const mockData = {
-  Popular: [
+  流行: [
     { name: 'Node.js', language: 'JavaScript', icon: '/icons/node.js.svg' },
     { name: 'Python', language: 'Python', icon: '/icons/python.svg' },
     { name: 'Ruby', language: 'Ruby', icon: '/icons/ruby.png' },
@@ -12,7 +13,7 @@ const mockData = {
     { name: 'Go', language: 'Go', icon: '/icons/go.svg' },
     { name: 'PHP', language: 'PHP', icon: '/icons/php.svg' },
   ],
-  Backend: [
+  后端: [
     { name: 'Echo', language: 'JavaScript', icon: '/icons/echo.svg' },
     { name: 'Chi', language: 'JavaScript', icon: '/icons/chi.svg' },
     { name: 'Iris', language: 'TypeScript', icon: '/icons/iris.svg' },
@@ -28,7 +29,7 @@ const mockData = {
       icon: '/icons/express.js.svg',
     },
   ],
-  Frontend: [
+  前端: [
     { name: 'Next.js', language: 'JavaScript', icon: '/icons/next.js.svg' },
     { name: 'React', language: 'JavaScript', icon: '/icons/react.svg' },
     { name: 'Vue', language: 'JavaScript', icon: '/icons/vue.svg' },
@@ -37,8 +38,7 @@ const mockData = {
     { name: 'Umi', language: 'JavaScript', icon: '/icons/umi.svg' },
     { name: 'SvelteKit', language: 'JavaScript', icon: '/icons/svelte.svg' },
   ],
-
-  'Docs, Blogs': [
+  文档博客: [
     {
       name: 'Docusaurus',
       language: 'JavaScript',
@@ -50,7 +50,7 @@ const mockData = {
     { name: 'Jekyll', language: 'Ruby', icon: '/icons/jekyll.png' },
     { name: 'Reveal.js', language: 'JavaScript', icon: '/icons/reveal.js.svg' },
   ],
-  'Native Languages': [
+  原生语言: [
     { name: 'C++', language: 'C++', icon: '/icons/c++.svg' },
     { name: 'Rust', language: 'Rust', icon: '/icons/rust.svg' },
     { name: 'Go', language: 'Go', icon: '/icons/go.svg' },
@@ -61,7 +61,7 @@ const mockData = {
 };
 
 export default function TechGrid() {
-  const [activeTab, setActiveTab] = useState('Backend');
+  const [activeTab, setActiveTab] = useState('后端');
 
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
@@ -71,7 +71,7 @@ export default function TechGrid() {
     <div className="mt-0 lg:mt-52">
       <AnimateElement type="slideUp">
         <div className="mb-6 text-center text-base font-bold text-black sm:mb-16 sm:text-4xl">
-          Instant Collaborative Environments at Your Fingertips
+          在几秒钟内启动可共享环境
         </div>
 
         {/* Tabs */}
@@ -110,7 +110,7 @@ export default function TechGrid() {
             >
               <div className="relative flex size-7 items-center justify-center text-4xl lg:size-10">
                 <Image
-                  src={tech.icon}
+                  src={getAssetPath(tech.icon)}
                   alt={tech.name}
                   fill
                   className="size-7 lg:size-10"
@@ -135,11 +135,8 @@ export default function TechGrid() {
                 'linear-gradient(90deg, rgba(170, 229, 255, 0.30) 0%, rgba(170, 229, 255, 0.20) 100%)',
             }}
           >
-            Quickly spin up environments for
-            <span className="px-1 text-[#008AB6]">
-              various programming languages and frameworks
-            </span>
-            , includes those that are less common.
+            支持可以在 Linux
+            平台上运行的所有编程语言和框架，并支持快速安装不常用的编程语言
           </div>
         </div>
       </AnimateElement>

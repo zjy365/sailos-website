@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn, getAssetPath } from '@/lib/utils';
 import { DatabaseIcon, SailosIcon, ObjectStorageIcon } from '../ui/icons';
 import Image from 'next/image';
 import { MagicCard } from '../ui/magic-card';
@@ -6,44 +6,43 @@ import { AnimateElement } from '../ui/animated-wrapper';
 
 const features = [
   {
-    title: 'Cloud OS',
-    description:
-      'Manage as in a vanilla Kubernetes, create clusters with single-click, and deploy containerized applications automatically',
+    title: '云操作系统',
+    description: '原生 K8s 管理、一键创建容器集群、自动化容器应用部署。',
     icon: <SailosIcon />,
   },
   {
-    title: 'HA Databases',
+    title: '高可用性数据库',
     description:
-      'Instantly deploy distributed databases with built-in high availability. Supports MySQL, Redis, MongoDB, PostgreSQL, and more - no complex multi-node setup required.',
+      '自动部署高可用分布式数据库，无需搭建复杂的多节点架构，全面兼容mysql/redis/mongo/pgsql等生态系统',
     icon: <DatabaseIcon />,
   },
   {
-    title: 'Object Storage',
+    title: '对象存储',
     description:
-      'Secure cloud data migration with built-in redundancy and disaster recovery. Seamlessly integrates with multi-language SDKs.',
+      '轻松将数据迁移到云中，并实现强大的冗余和灾难恢复，与多种语言的 SDK 无缝集成。',
     icon: <ObjectStorageIcon />,
   },
 ];
 
 const features2 = [
   {
-    title: 'Secure Environment Isolation',
+    title: '环境安全隔离 ',
     description:
-      'Develop in isolated environments and avoid dependency nightmares. Use consistent, reproducible workspaces for each project, and focus on relevant tasks.',
+      'Devbox 提供安全、独立的开发环境，消除依赖冲突。动态云原生基础设施管理可确保一致、可重现的工作空间，使开发人员能够专注于核心工作，而无需担心基础设施的复杂性。',
     icon: '🛡️',
     image: '/images/foundation-2-1.svg',
   },
   {
-    title: 'Unparalleled Performance',
+    title: '极致的性能',
     description:
-      'Achieve outstanding performance on our large-scale clusters, all managed by our lightweight, tailored load balancer capable of handling tens of thousands of nodes.',
+      '自研的轻量级负载均衡器可以处理数万个节点的大规模集群，提供无与伦比的性能。',
     icon: '🚀',
     image: '/images/foundation-2-2.svg',
   },
   {
-    title: 'Access from Any Network',
+    title: '从任何网络访问',
     description:
-      'Get access to applications from the internal network and the Internet, with automatic TLS configuration. Develop securely and flexibly on any networks, anywhere.',
+      'Devbox 提供内联网和互联网访问地址，并自动配置 SSL 证书，以增强安全性和灵活性。这使开发人员能够在网络间无缝工作，同时保持安全连接。',
     icon: '🌐',
     image: '/images/foundation-2-3.svg',
   },
@@ -53,22 +52,22 @@ const performanceStats = [
   {
     icon: '/images/efficient-1.svg',
     percentage: '90%',
-    description: 'Cost Reduction',
+    description: '降低成本',
   },
   {
     icon: '/images/efficient-2.svg',
     percentage: '500%',
-    description: 'Performance Improvement',
+    description: '性能提升',
   },
   {
     icon: '/images/efficient-3.svg',
     percentage: '99.99999%',
-    description: 'Extremely Stable',
+    description: '极其稳定',
   },
   {
     icon: '/images/efficient-4.svg',
     percentage: '100%',
-    description: 'Safety Protection',
+    description: '安全防护',
   },
 ];
 
@@ -77,7 +76,7 @@ export default function Feature() {
     <div className="mt-52">
       <AnimateElement type="slideUp">
         <div className="text-center text-base font-bold text-black sm:text-4xl">
-          Infrastructure
+          数据底座
         </div>
       </AnimateElement>
 
@@ -110,7 +109,7 @@ export default function Feature() {
                   className="mt-auto h-full"
                 >
                   <Image
-                    src={`/images/foundation-${index + 1}.svg`}
+                    src={getAssetPath(`/images/foundation-${index + 1}.svg`)}
                     alt={feature.title}
                     width={411}
                     height={285}
@@ -142,7 +141,11 @@ export default function Feature() {
               gradientSize={300}
               className="relative basis-1/2 rounded border border-dashed border-[#9DCBE6] bg-transparent"
             >
-              <Image src={feature.image} alt={feature.title} fill />
+              <Image
+                src={getAssetPath(feature.image)}
+                alt={feature.title}
+                fill
+              />
             </MagicCard>
             <div className="flex basis-1/2 flex-col justify-center">
               <h3 className="mb-5 text-base font-bold sm:text-[28px]">
@@ -158,14 +161,14 @@ export default function Feature() {
 
       <AnimateElement type="slideUp">
         <div className="mt-[200px] text-center text-base font-bold text-black sm:text-4xl">
-          Instant Development Environments
+          即时开发环境
         </div>
         <div className="mt-16 flex flex-wrap items-center gap-10 rounded border border-dashed border-[#9DCBE6] px-2 py-9 lg:px-20">
           {performanceStats.map((stat, index) => (
             <div key={index} className="flex flex-1 items-center gap-4">
               <div className="h-[37px] w-[37px] flex-shrink-0 lg:h-[80px] lg:w-[80px]">
                 <Image
-                  src={stat.icon}
+                  src={getAssetPath(stat.icon)}
                   alt={stat.description}
                   width={80}
                   height={80}

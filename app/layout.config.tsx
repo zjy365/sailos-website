@@ -31,12 +31,20 @@ export const baseOptions: BaseLayoutProps = {
 
 export const HeaderLinks = [
   {
-    text: 'App Store',
-    url: 'https://template.usw.sailos.io',
+    text: '首页',
+    url: 'https://ads.sealos.run/',
   },
   {
-    text: 'Docs',
-    url: '/docs',
+    text: '定价',
+    url: 'https://ads.sealos.run/Price',
+  },
+  {
+    text: '文档',
+    url: 'https://sealos.run/docs/Intro/',
+  },
+  {
+    text: '商务咨询',
+    url: 'https://fael3z0zfze.feishu.cn/share/base/form/shrcn5oHHTKCf3VREMKOhEy6fmf',
   },
   // {
   //   text: 'Pricing',
@@ -46,8 +54,8 @@ export const HeaderLinks = [
   //   text: 'Blog',
   //   url: '/blog',
   // },
-  {
-    text: 'Contact',
-    url: '/contact',
-  },
+  // {
+  //   text: 'Contact',
+  //   url: '/contact',
+  // },
 ];

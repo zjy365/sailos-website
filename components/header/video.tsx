@@ -3,6 +3,7 @@
 import ReactPlayer from 'react-player';
 import { AnimateElement } from '../ui/animated-wrapper';
 import { useState, useRef, useEffect } from 'react';
+import { getAssetPath } from '@/lib/utils';
 
 const CustomPlayIcon = () => (
   <svg
@@ -48,7 +49,7 @@ export default function Video() {
           controls={isPlaying}
           light={
             <img
-              src="/images/video-thumbnail.png"
+              src={getAssetPath('/images/video-thumbnail.png')}
               alt="video-thumbnail"
               className="h-full w-full rounded-xl object-cover"
               style={{
