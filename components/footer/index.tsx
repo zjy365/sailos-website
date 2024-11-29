@@ -101,7 +101,6 @@ const Footer = async () => {
             <FooterLink href="https://github.com/labring/sealos/issues">
               问题反馈
             </FooterLink>
-            <FooterLink href="https://sealos.run/company/">关于我们</FooterLink>
           </FooterLinkColumn>
         </div>
       </div>

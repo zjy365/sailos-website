@@ -11,6 +11,5 @@ export const getAssetPath = (path: string) => {
       ? 'https://ads.sealos.run/app_store/tool/devbox'
       : '';
   const fullPath = `${baseUrl}${path}`;
-  console.log('Image path:', fullPath); // 添加日志
   return fullPath;
 };

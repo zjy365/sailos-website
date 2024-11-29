@@ -6,7 +6,24 @@ import Footer from '@/components/footer';
 import Header from '@/components/header';
 import Hero from '@/components/header/hero';
 import { TailwindIndicator } from '@/components/tailwind-indicator';
+import { Metadata } from 'next';
 import Script from 'next/script';
+
+export const metadata: Metadata = {
+  title: 'Sealos DevBox - 云原生在线开发环境',
+  description:
+    '基于 Sealos 的在线开发环境，支持多种编程语言和框架，提供即开即用的云端开发体验',
+  keywords: [
+    'Sealos',
+    'DevBox',
+    'Cloud IDE',
+    '云原生',
+    '在线开发环境',
+    '云端开发',
+    'Kubernetes',
+    '容器化开发',
+  ],
+};
 
 export default function HomePage({ params }: { params: { lang: string } }) {
   return (
