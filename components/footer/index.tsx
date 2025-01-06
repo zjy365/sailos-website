@@ -3,7 +3,7 @@ import { siteConfig } from '@/config/site';
 import Link from 'fumadocs-core/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { DiscordIcon, FrameIcon, GithubIcon } from '../ui/icons';
+import { DiscordIcon, GithubIcon } from '../ui/icons';
 
 interface FooterLinkColumnProps {
   children: React.ReactNode;
@@ -102,12 +102,12 @@ const Footer = async () => {
             Privacy Policy
           </FooterLink>
           <div>|</div>
-          <div>Copyright © 2024 Fumadocs. All rights reserved.</div>
+          <div>Copyright © 2024 Sailos. All rights reserved.</div>
         </div>
         <div className="flex space-x-4">
           <Link
             className="flex size-8 items-center justify-center rounded-full bg-[#FAFCFF] object-center hover:bg-[#1118240D]"
-            href="https://github.com"
+            href={siteConfig.links.github}
             aria-label="GitHub"
           >
             <GithubIcon />
@@ -115,17 +115,36 @@ const Footer = async () => {
 
           <Link
             className="flex size-8 items-center justify-center rounded-full bg-[#FAFCFF] object-center hover:bg-[#1118240D]"
-            href="https://discord.com"
+            href={siteConfig.links.discord}
             aria-label="Discord"
           >
             <DiscordIcon />
           </Link>
           <Link
             className="flex size-8 items-center justify-center rounded-full bg-[#FAFCFF] object-center hover:bg-[#1118240D]"
-            href="https://twitter.com"
+            href={siteConfig.links.twitter}
             aria-label="Twitter"
           >
-            <FrameIcon />
+            <Image
+              src="/icons/twitter.svg"
+              alt="Twitter"
+              width={16}
+              height={16}
+              className="h-4 w-4"
+            />
+          </Link>
+          <Link
+            className="flex size-8 items-center justify-center rounded-full bg-[#FAFCFF] object-center hover:bg-[#1118240D]"
+            href={siteConfig.links.youtube}
+            aria-label="YouTube"
+          >
+            <Image
+              src="/icons/youtube.svg"
+              alt="YouTube"
+              width={16}
+              height={16}
+              className="h-4 w-4"
+            />
           </Link>
         </div>
       </div>
