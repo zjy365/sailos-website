@@ -1,10 +1,10 @@
 ---
 title: Autoscaling
-keywords: [Sailos, Autoscaling, Horizontal Pod Autoscaler, HPA, application scaling, CPU usage, memory usage, cloud scaling, Sailos controller, performance monitoring]
-description: Learn how Sailos' Autoscaling feature dynamically adjusts application instances based on CPU and memory usage, ensuring optimal performance and resource utilization.
+keywords: [Sealos, Autoscaling, Horizontal Pod Autoscaler, HPA, application scaling, CPU usage, memory usage, cloud scaling, Sealos controller, performance monitoring]
+description: Learn how Sealos' Autoscaling feature dynamically adjusts application instances based on CPU and memory usage, ensuring optimal performance and resource utilization.
 ---
 
-In [Sailos](https://usw.sailos.io), the "[App Launchpad](/guides/applaunchpad/applaunchpad.md)" feature enables the
+In [Sealos](https://usw.sailos.io), the "[App Launchpad](/guides/applaunchpad/applaunchpad.md)" feature enables the
 automatic adjustment of application instance numbers to effectively respond to varying load conditions. This
 functionality is known as "**Autoscaling**," or more technically, the Horizontal Pod Autoscaler (HPA).
 
@@ -20,7 +20,7 @@ The workings of Autoscaling are as follows:
 1. **Monitoring**: It continuously monitors crucial performance indicators like CPU and memory usage.
 2. **Decision Making**: Based on predefined thresholds (e.g., maintaining CPU usage below 50%), it calculates the
    required adjustments in the instance count.
-3. **Adjustment**: Following this, Autoscaling automatically instructs the Sailos controller to modify the number of
+3. **Adjustment**: Following this, Autoscaling automatically instructs the Sealos controller to modify the number of
    instances, ensuring the usage stays within the desired range.
 
 For instance, if we set up an application with specific Autoscaling rules such as a maximum CPU usage of 50% and the
@@ -30,4 +30,4 @@ ability for instance numbers to vary between 1 and 5, Autoscaling will:
 - Decrease the number of instances when the average CPU usage drops below 50%, but always maintain at least one instance
   in operation.
 
-![](./images/sailos-autoscale.png)
+![](./images/sealos-autoscale.png)

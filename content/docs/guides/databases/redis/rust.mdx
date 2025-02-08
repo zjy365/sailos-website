@@ -1,14 +1,14 @@
 ---
 title: Rust
-description: Learn how to connect to Redis databases in Sailos Devbox using Rust
+description: Learn how to connect to Redis databases in Sealos Devbox using Rust
 ---
 
-This guide will walk you through the process of connecting to a Redis database using Rust within your Sailos Devbox project.
+This guide will walk you through the process of connecting to a Redis database using Rust within your Sealos Devbox project.
 
 ## Prerequisites
 
-- [A Sailos Devbox project](/docs/guides/fundamentals/create-a-project) with Rust environment
-- [A Redis database created using the Database app in Sailos](./)
+- [A Sealos Devbox project](/docs/guides/fundamentals/create-a-project) with Rust environment
+- [A Redis database created using the Database app in Sealos](./)
 
 ## Install Required Dependencies
 
@@ -38,7 +38,7 @@ REDIS_PORT=6379
 REDIS_PASSWORD=your_redis_password
 ```
 
-Replace the placeholders with your actual Redis credentials from the Database app in Sailos.
+Replace the placeholders with your actual Redis credentials from the Database app in Sealos.
 
 #### Create the main.rs file
 
@@ -68,7 +68,7 @@ fn main() -> redis::RedisResult<()> {
     let mut con = client.get_connection()?;
 
     // Set a key
-    let _: () = con.set("my_key", "Hello from Sailos Devbox!")?;
+    let _: () = con.set("my_key", "Hello from Sealos Devbox!")?;
 
     // Get a key
     let value: String = con.get("my_key")?;

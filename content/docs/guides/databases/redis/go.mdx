@@ -1,14 +1,14 @@
 ---
 title: Go
-description: Learn how to connect to Redis databases in Sailos Devbox using Go
+description: Learn how to connect to Redis databases in Sealos Devbox using Go
 ---
 
-This guide will walk you through the process of connecting to a Redis database using Go within your Sailos Devbox project.
+This guide will walk you through the process of connecting to a Redis database using Go within your Sealos Devbox project.
 
 ## Prerequisites
 
-- [A Sailos Devbox project](/docs/guides/fundamentals/create-a-project) with Go environment
-- [A Redis database created using the Database app in Sailos](./)
+- [A Sealos Devbox project](/docs/guides/fundamentals/create-a-project) with Go environment
+- [A Redis database created using the Database app in Sealos](./)
 
 ## Install Required Packages
 
@@ -37,7 +37,7 @@ REDIS_PORT=6379
 REDIS_PASSWORD=your_redis_password
 ```
 
-Replace the placeholders with your actual Redis credentials from the Database app in Sailos.
+Replace the placeholders with your actual Redis credentials from the Database app in Sealos.
 
 #### Create the main.go file
 
@@ -75,7 +75,7 @@ func main() {
 	}
 	fmt.Println("Connected to Redis: ", pong)
 	// Set a key
-	err = client.Set("mykey", "Hello from Sailos Devbox!", 0).Err()
+	err = client.Set("mykey", "Hello from Sealos Devbox!", 0).Err()
 	if err != nil {
 		log.Fatal("Could not set key: ", err)
 	}

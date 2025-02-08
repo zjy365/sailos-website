@@ -1,14 +1,14 @@
 ---
 title: Java
-description: Learn how to connect to Redis databases in Sailos Devbox using Java
+description: Learn how to connect to Redis databases in Sealos Devbox using Java
 ---
 
-This guide will walk you through the process of connecting to a Redis database using Java within your Sailos Devbox project.
+This guide will walk you through the process of connecting to a Redis database using Java within your Sealos Devbox project.
 
 ## Prerequisites
 
-- [A Sailos Devbox project](/docs/guides/fundamentals/create-a-project) with Java environment
-- [A Redis database created using the Database app in Sailos](./)
+- [A Sealos Devbox project](/docs/guides/fundamentals/create-a-project) with Java environment
+- [A Redis database created using the Database app in Sealos](./)
 
 ## Project Setup
 
@@ -16,7 +16,7 @@ This guide will walk you through the process of connecting to a Redis database u
 
 #### Create a new Maven project
 
-In your Sailos Devbox terminal, initialize a new Maven project:
+In your Sealos Devbox terminal, initialize a new Maven project:
 
 ```bash
 mvn archetype:generate -DgroupId=com.example -DartifactId=redis-java-example -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false
@@ -141,7 +141,7 @@ redis.port=6379
 redis.password=your_redis_password
 ```
 
-Replace the placeholders with your actual Redis credentials from the Database app in Sailos.
+Replace the placeholders with your actual Redis credentials from the Database app in Sealos.
 
 #### Create Java classes
 
@@ -160,7 +160,7 @@ Create the following Java classes in the `src/main/java/com/example` directory:
                System.out.println("Connected to Redis");
    
                // String operations
-               jedis.set("mykey", "Hello from Sailos Devbox!");
+               jedis.set("mykey", "Hello from Sealos Devbox!");
                String value = jedis.get("mykey");
                System.out.println("Retrieved value: " + value);
    
@@ -310,6 +310,6 @@ If you encounter connection issues:
 
 ## Conclusion
 
-This guide provided a complete example of how to set up a Java project with Maven to connect to a Redis database in the Sailos Devbox environment. It includes all the necessary steps, from project creation to running the application, along with best practices and troubleshooting tips.
+This guide provided a complete example of how to set up a Java project with Maven to connect to a Redis database in the Sealos Devbox environment. It includes all the necessary steps, from project creation to running the application, along with best practices and troubleshooting tips.
 
 For more detailed information on using Redis with Java, refer to the [Jedis GitHub repository](https://github.com/redis/jedis).

@@ -1,4 +1,4 @@
-name: Preview Sailos Website
+name: Preview Sealos Website
 
 on:
   workflow_dispatch:

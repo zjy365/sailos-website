@@ -1,10 +1,10 @@
 ---
 title: Environments
-keywords: [Sailos, environment variables, container applications, configuration management, App Launchpad]
-description: Learn how to manage configuration data for container applications in Sailos using environment variables for better maintainability and scalability.
+keywords: [Sealos, environment variables, container applications, configuration management, App Launchpad]
+description: Learn how to manage configuration data for container applications in Sealos using environment variables for better maintainability and scalability.
 ---
 
-In [Sailos](https://usw.sailos.io), environment variables are pivotal in managing the configuration data for container
+In [Sealos](https://usw.sailos.io), environment variables are pivotal in managing the configuration data for container
 applications. These variables enable the provision of essential configuration information to applications without
 necessitating changes to the application's code or image, thus bolstering their maintainability and scalability.
 
@@ -14,14 +14,14 @@ variable comprises a key and a value, separated by either an equal sign (=) or a
 automatically eliminate any invalid characters from the key, ensuring the accuracy and validity of the environment
 variables.
 
-![](./images/sailos-environments.png)
+![](./images/sealos-environments.png)
 
 **Environment Variable Formats That Are Correctly Interpreted:**
 
 ```shell
 host=127.0.0.1
 port:3000
-name: sailos
+name: sealos
 - username=123
 - password:123
 # Comments like this line are ignored, as they don't include an equal sign (=) or a colon (:), which are the key markers.

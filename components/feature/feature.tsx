@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { DatabaseIcon, SailosIcon, ObjectStorageIcon } from '../ui/icons';
+import { DatabaseIcon, SealosIcon, ObjectStorageIcon } from '../ui/icons';
 import Image from 'next/image';
 import { MagicCard } from '../ui/magic-card';
 import { AnimateElement } from '../ui/animated-wrapper';
@@ -9,7 +9,7 @@ const features = [
     title: 'Enterprise Cloud OS',
     description:
       'Enterprise-grade Kubernetes platform with multi-cloud support. Single-click cluster creation and automated container orchestration across AWS, GCP, and Azure.',
-    icon: <SailosIcon />,
+    icon: <SealosIcon />,
   },
   {
     title: 'Managed Database Suite',

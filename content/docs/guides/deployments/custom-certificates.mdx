@@ -37,8 +37,8 @@ kubectl create secret tls network-test --cert tls.crt --key tls.key
 kubectl get ingress 
 ```
 
-Modify the ingress (replace xzy-dev.sailos.run with your own custom domain).
+Modify the ingress (replace xzy-dev.sealos.run with your own custom domain).
 
 ```bash
-kubectl patch ingress network-twvuqmjzckur -p '{"spec":{"tls":[{"hosts":["xzy-dev.sailos.run"],"secretName":"network-test"}]}}'
+kubectl patch ingress network-twvuqmjzckur -p '{"spec":{"tls":[{"hosts":["xzy-dev.sealos.run"],"secretName":"network-test"}]}}'
 ```

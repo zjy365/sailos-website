@@ -1,14 +1,14 @@
 ---
 title: PHP
-description: Learn how to connect to Redis databases in Sailos Devbox using PHP
+description: Learn how to connect to Redis databases in Sealos Devbox using PHP
 ---
 
-This guide will walk you through the process of connecting to a Redis database using PHP within your Sailos Devbox project.
+This guide will walk you through the process of connecting to a Redis database using PHP within your Sealos Devbox project.
 
 ## Prerequisites
 
-- [A Sailos Devbox project](/docs/guides/fundamentals/create-a-project) with PHP environment
-- [A Redis database created using the Database app in Sailos](./)
+- [A Sealos Devbox project](/docs/guides/fundamentals/create-a-project) with PHP environment
+- [A Redis database created using the Database app in Sealos](./)
 
 ## Install Required Extensions
 
@@ -36,7 +36,7 @@ return [
 ];
 ```
 
-Replace the placeholders with your actual Redis credentials from the Database app in Sailos.
+Replace the placeholders with your actual Redis credentials from the Database app in Sealos.
 
 #### Create a Redis Connection Function
 
@@ -76,7 +76,7 @@ require_once 'redis_connect.php';
 $redis = getRedisConnection();
 
 // Set a key
-$redis->set('mykey', 'Hello from Sailos Devbox!');
+$redis->set('mykey', 'Hello from Sealos Devbox!');
 echo "Key set successfully.\n";
 
 // Get a key

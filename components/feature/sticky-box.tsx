@@ -10,7 +10,7 @@ const content = [
     title: 'Instant Cloud Workspaces',
     subtitle: 'Development at the speed of thought',
     description:
-      "Launch production-ready development environments in seconds. Share code, configs and data seamlessly with your team - all powered by Sailos's enterprise-grade cloud platform.",
+      "Launch production-ready development environments in seconds. Share code, configs and data seamlessly with your team - all powered by Sealos's enterprise-grade cloud platform.",
     content: (
       <div className="group relative aspect-[700/450] w-full overflow-hidden rounded-lg bg-[#FAFCFF] shadow-sticky-box">
         <Image

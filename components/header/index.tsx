@@ -60,7 +60,9 @@ export default function Header({ lang }: { lang: string }) {
           </div>
 
           <div className="hidden items-center gap-4 text-sm font-medium lg:flex">
-            <GetStartedButton />
+            <a href="https://usw.sailos.io" target="_blank">
+              <GetStartedButton />
+            </a>
           </div>
 
           {/* phone menu */}

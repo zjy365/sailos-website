@@ -1,14 +1,14 @@
 ---
 title: Go
-description: Learn how to connect to MongoDB databases in Sailos Devbox using Go
+description: Learn how to connect to MongoDB databases in Sealos Devbox using Go
 ---
 
-This guide will walk you through the process of connecting to a MongoDB database using Go within your Sailos Devbox project.
+This guide will walk you through the process of connecting to a MongoDB database using Go within your Sealos Devbox project.
 
 ## Prerequisites
 
-- [A Sailos Devbox project](/docs/guides/fundamentals/create-a-project) with Go environment
-- [A MongoDB database created using the Database app in Sailos](./)
+- [A Sealos Devbox project](/docs/guides/fundamentals/create-a-project) with Go environment
+- [A MongoDB database created using the Database app in Sealos](./)
 
 ## Install Required Packages
 
@@ -36,7 +36,7 @@ MONGO_URI=mongodb://your_username:your_password@your_database_host:27017
 DB_NAME=your_database_name
 ```
 
-Replace the placeholders with your actual MongoDB credentials from the Database app in Sailos. Note that we're not including the database name in the URI, as we'll create it programmatically if it doesn't exist.
+Replace the placeholders with your actual MongoDB credentials from the Database app in Sealos. Note that we're not including the database name in the URI, as we'll create it programmatically if it doesn't exist.
 
 #### Create the main.go file
 

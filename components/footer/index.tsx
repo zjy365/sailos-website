@@ -67,13 +67,19 @@ const Footer = async () => {
             <div className="text-base font-semibold uppercase text-black hover:text-black hover:no-underline">
               Product
             </div>
+            <FooterLink href="/docs/quick-start">
+              Docs
+            </FooterLink>
+            <FooterLink href="https://template.usw.sailos.io">
+              App Store
+            </FooterLink>
           </FooterLinkColumn>
           <FooterLinkColumn>
             <div className="text-base font-semibold uppercase text-black hover:text-black hover:no-underline">
               Developer
             </div>
             <FooterLink href={siteConfig.links.github}>
-              Private Deployment
+              Self Hosting
             </FooterLink>
           </FooterLinkColumn>
           <FooterLinkColumn>
@@ -102,7 +108,7 @@ const Footer = async () => {
             Privacy Policy
           </FooterLink>
           <div>|</div>
-          <div>Copyright © 2024 Sailos. All rights reserved.</div>
+          <div>Copyright © 2024 Sealos. All rights reserved.</div>
         </div>
         <div className="flex space-x-4">
           <Link
@@ -128,19 +134,6 @@ const Footer = async () => {
             <Image
               src="/icons/twitter.svg"
               alt="Twitter"
-              width={16}
-              height={16}
-              className="h-4 w-4"
-            />
-          </Link>
-          <Link
-            className="flex size-8 items-center justify-center rounded-full bg-[#FAFCFF] object-center hover:bg-[#1118240D]"
-            href={siteConfig.links.youtube}
-            aria-label="YouTube"
-          >
-            <Image
-              src="/icons/youtube.svg"
-              alt="YouTube"
               width={16}
               height={16}
               className="h-4 w-4"

@@ -1,20 +1,20 @@
 import { SiteConfig } from '@/types';
 
-export const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://sailos.io';
+export const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://sealos.io';
 
 export const siteConfig: SiteConfig = {
-  name: 'Sailos',
-  author: 'zjy365',
-  description: 'sailos',
-  keywords: ['sailos', 'Next.js'],
+  name: 'Sealos',
+  author: 'labring',
+  description: 'sealos',
+  keywords: ['sealos', 'Next.js'],
   url: {
     base: process.env.NEXT_PUBLIC_APP_URL || '',
     author: '',
   },
   links: {
-    github: 'https://github.com/sailos-io/website',
+    github: 'https://github.com/labring/sealos',
     twitter: 'https://x.com/Sailos_io',
-    discord: 'https://discord.gg/cmUg8fDHwv',
+    discord: 'https://discord.com/invite/qzBmGGZGk7',
     youtube: 'https://www.youtube.com/@sailos-devbox',
   },
   ogImage: `${process.env.NEXT_PUBLIC_APP_URL}/og.png?${new Date().getTime()}`,

@@ -14,12 +14,12 @@ export const baseOptions: BaseLayoutProps = {
   nav: {
     title: (
       <div className="flex items-center gap-1">
-        <Image alt="Sailos" src="/logo.svg" width={24} height={24} />
-        <span className="hidden text-base font-bold md:block">Sailos</span>
+        <Image alt="Sealos" src="/logo.svg" width={24} height={24} />
+        <span className="hidden text-base font-bold md:block">Sealos</span>
       </div>
     ),
   },
-  githubUrl: 'https://github.com/zjy365/sailos-site',
+  githubUrl: 'https://github.com/labring/sealos',
   links: [
     {
       text: 'Documentation',

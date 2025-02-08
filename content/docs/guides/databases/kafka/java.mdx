@@ -1,14 +1,14 @@
 ---
 title: Java
-description: Learn how to connect to Kafka in Sailos Devbox using Java
+description: Learn how to connect to Kafka in Sealos Devbox using Java
 ---
 
-This guide will walk you through the process of connecting to Kafka using Java within your Sailos Devbox project.
+This guide will walk you through the process of connecting to Kafka using Java within your Sealos Devbox project.
 
 ## Prerequisites
 
-- [A Sailos Devbox project](/docs/guides/fundamentals/create-a-project) with Java environment
-- [A Kafka cluster created using the Database app in Sailos](./)
+- [A Sealos Devbox project](/docs/guides/fundamentals/create-a-project) with Java environment
+- [A Kafka cluster created using the Database app in Sealos](./)
 
 ## Project Setup
 
@@ -16,7 +16,7 @@ This guide will walk you through the process of connecting to Kafka using Java w
 
 #### Create a new Maven project
 
-In your Sailos Devbox terminal, initialize a new Maven project:
+In your Sealos Devbox terminal, initialize a new Maven project:
 
 ```bash
 mvn archetype:generate -DgroupId=com.example -DartifactId=kafka-java-example -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false
@@ -107,7 +107,7 @@ topic=your_topic_name
 group.id=your_consumer_group_id
 ```
 
-Replace the placeholders with your actual Kafka credentials from the Database app in Sailos.
+Replace the placeholders with your actual Kafka credentials from the Database app in Sealos.
 
 #### Create Java classes
 
@@ -134,7 +134,7 @@ public class KafkaProducerExample {
         Producer<String, String> producer = new KafkaProducer<>(props);
 
         String topic = props.getProperty("topic");
-        String message = "Hello from Sailos Devbox!";
+        String message = "Hello from Sealos Devbox!";
 
         ProducerRecord<String, String> record = new ProducerRecord<>(topic, message);
 

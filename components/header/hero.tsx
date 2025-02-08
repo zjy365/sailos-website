@@ -43,7 +43,7 @@ export default function Hero() {
               className="text-2xl font-bold leading-[97px] sm:text-[56px] lg:text-[64px] xl:text-[80px]"
               style={{ letterSpacing: '0.15px' }}
             >
-              Ship 10x Faster with Sailos DevBox
+              Ship 10x Faster with Sealos DevBox
             </div>
             <div
               className="mx-auto mb-6 mt-0  max-w-[700px] text-xs font-medium text-custom-secondary-text sm:my-6 sm:text-base"
@@ -55,9 +55,11 @@ export default function Hero() {
             </div>
 
             <div className="flex items-center justify-center gap-4 text-base font-medium">
-              <GetStartedButton />
+              <a href="https://usw.sailos.io" target="_blank">
+                <GetStartedButton />
+              </a>
               <div className="flex cursor-pointer items-center justify-center gap-[6px] rounded-md bg-[#FAFCFF] px-4 py-2 text-custom-primary-text shadow-button hover:bg-[#F1F5FB] sm:px-5">
-                Talk to Us
+                Contact Sales
               </div>
             </div>
           </AnimateElement>
