@@ -1,0 +1,150 @@
+---
+title: PHP
+description: 在 Sealos Devbox 中使用 PHP 连接并操作 Kafka 的完整指南
+---
+
+本指南将详细介绍如何在 Sealos Devbox 环境中使用 PHP 连接和操作 Kafka 消息队列服务。
+
+## 准备工作
+
+在开始之前，请确保：
+
+- [已在 Sealos Devbox 中创建并配置好 PHP 开发环境](/docs/guides/fundamentals/create-a-project)
+- [已通过 Sealos 数据库应用成功创建 Kafka 集群](./)
+
+## 环境配置
+
+### 安装系统依赖
+
+首先，在 Devbox 运行环境的终端中安装必要的系统依赖：
+
+```bash
+sudo apt-get update
+sudo apt-get install -y librdkafka-dev
+```
+
+### 安装 PHP 扩展
+
+接下来，为 PHP 安装并启用 Kafka 扩展：
+
+```bash
+sudo pecl install rdkafka
+sudo sh -c 'echo "extension=rdkafka.so" > /etc/php/*/mods-available/rdkafka.ini'
+sudo phpenmod rdkafka
+```
+
+## 连接设置
+
+<div className='steps [&_h4]:step'>
+
+#### 配置连接参数
+
+首先创建一个配置文件来存储 Kafka 连接参数。在项目目录中新建 `config.php` 文件：
+
+```php title="config.php"
+<?php
+return [
+    'brokers' => 'your_kafka_broker:9092',
+    'topic' => 'your_topic_name',
+    'group_id' => 'your_consumer_group_id'
+];
+```
+
+请将配置文件中的占位符替换为您从 Sealos 数据库应用中获取的实际 Kafka 连接信息。
+
+#### 实现消息生产者
+
+创建 `kafka_producer.php` 文件，用于发送消息到 Kafka：
+
+```php title="kafka_producer.php"
+<?php
+$config = include 'config.php';
+
+$conf = new RdKafka\Conf();
+$conf->set('metadata.broker.list', $config['brokers']);
+
+$producer = new RdKafka\Producer($conf);
+
+$topic = $producer->newTopic($config['topic']);
+
+$message = "Hello from Sailos Devbox!";
+$topic->produce(RD_KAFKA_PARTITION_UA, 0, $message);
+
+$producer->flush(10000);
+
+echo "Message sent: $message\n";
+```
+
+#### 实现消息消费者
+
+创建 `kafka_consumer.php` 文件，用于接收和处理 Kafka 消息：
+
+```php title="kafka_consumer.php"
+<?php
+$config = include 'config.php';
+
+$conf = new RdKafka\Conf();
+$conf->set('group.id', $config['group_id']);
+$conf->set('metadata.broker.list', $config['brokers']);
+$conf->set('auto.offset.reset', 'earliest');
+
+$consumer = new RdKafka\KafkaConsumer($conf);
+$consumer->subscribe([$config['topic']]);
+
+echo "Waiting for messages...\n";
+
+while (true) {
+    $message = $consumer->consume(120*1000);
+    switch ($message->err) {
+        case RD_KAFKA_RESP_ERR_NO_ERROR:
+            echo "Received message: " . $message->payload . "\n";
+            break;
+        case RD_KAFKA_RESP_ERR__PARTITION_EOF:
+            echo "No more messages; will wait for more\n";
+            break;
+        case RD_KAFKA_RESP_ERR__TIMED_OUT:
+            echo "Timed out\n";
+            break;
+        default:
+            throw new \Exception($message->errstr(), $message->err);
+            break;
+    }
+}
+```
+
+</div>
+
+## 运行程序
+
+在 Devbox 终端中运行生产者脚本：
+
+```bash
+php kafka_producer.php
+```
+
+打开另一个终端窗口运行消费者脚本：
+
+```bash
+php kafka_consumer.php
+```
+
+消费者脚本将持续监听消息。当您运行生产者脚本时，消费者终端会显示接收到的消息内容。
+
+## 最佳实践
+
+1. 使用环境变量管理 Kafka 连接配置，避免硬编码敏感信息
+2. 实现完善的错误处理和日志记录机制
+3. 建议使用 `monolog` 等专业日志库增强日志功能
+4. 为消费者程序实现优雅的退出机制
+5. 处理大量消息时，建议启用消息压缩以提升性能
+
+## 常见问题排查
+
+如果遇到连接问题，请检查以下几点：
+
+1. 确认 `config.php` 中的 Kafka 服务地址配置正确
+2. 验证 Kafka 集群状态是否正常运行
+3. 检查 Devbox 环境的网络连接是否正常
+4. 确保 `rdkafka` 扩展已正确安装并启用
+
+更多关于 PHP 操作 Kafka 的详细信息，请参考 [php-rdkafka 官方文档](https://github.com/arnaud-lb/php-rdkafka)。

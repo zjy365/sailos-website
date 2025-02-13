@@ -1,0 +1,175 @@
+---
+title: Python
+description: 在 Sealos Devbox 中使用 Python 连接 PostgreSQL 数据库的完整指南
+---
+
+本教程将详细介绍如何在 Sealos Devbox 项目中使用 Python 连接和操作 PostgreSQL 数据库。
+
+## 准备工作
+
+在开始之前，请确保你已经：
+
+- [创建并配置好 Python 运行环境的 Sealos Devbox 项目](/docs/guides/fundamentals/create-a-project)
+- [在 Sealos 数据库应用中创建了 PostgreSQL 数据库](./)
+
+## 启动 Python 环境
+
+首先，我们需要在 Devbox 中启动 Python 虚拟环境。在 Cursor IDE 的终端中执行以下命令：
+
+```bash
+source ./bin/activate
+```
+
+当你看到终端提示符发生变化时，说明虚拟环境已经成功启动。
+
+## 安装 psycopg2-binary
+
+在虚拟环境中，使用 pip 安装 PostgreSQL 的 Python 驱动程序 `psycopg2-binary`：
+
+```bash
+pip install psycopg2-binary
+```
+
+## 配置连接
+
+<div className='steps [&_h4]:step'>
+
+#### 创建配置文件
+
+为了方便管理数据库连接参数，我们首先创建一个配置文件。这样可以在不修改代码的情况下灵活调整连接设置。
+
+在项目根目录下创建 `database.ini` 文件，添加以下内容：
+
+```ini title="database.ini"
+[postgresql]
+host=your_database_host
+database=your_database_name
+user=your_username
+password=your_password
+port=5432
+```
+
+请将配置文件中的占位符替换为你在 Sealos 数据库应用中获取的实际 PostgreSQL 连接信息。
+
+#### 创建配置加载器
+
+接下来，我们创建一个 Python 模块来读取配置文件。这个模块将使用 Python 内置的 `configparser` 模块解析配置信息。
+
+创建 `config.py` 文件并添加以下代码：
+
+```python title="config.py"
+from configparser import ConfigParser
+
+def load_config(filename='database.ini', section='postgresql'):
+    parser = ConfigParser()
+    parser.read(filename)
+
+    # get section, default to postgresql
+    config = {}
+    if parser.has_section(section):
+        params = parser.items(section)
+        for param in params:
+            config[param[0]] = param[1]
+    else:
+        raise Exception('Section {0} not found in the {1} file'.format(section, filename))
+
+    return config
+
+if __name__ == '__main__':
+    config = load_config()
+    print(config)
+```
+
+`load_config()` 函数会读取配置文件并以字典形式返回连接参数。直接运行此脚本可以验证配置是否正确读取。
+
+#### 创建数据库连接模块
+
+现在，我们创建一个模块来处理与 PostgreSQL 数据库的连接和查询操作。
+
+创建 `connect.py` 文件：
+
+```python title="connect.py"
+import psycopg2
+from config import load_config
+
+def connect(config):
+    """ Connect to the PostgreSQL database server """
+    try:
+        # connecting to the PostgreSQL server
+        conn = psycopg2.connect(**config)
+        print('Connected to the PostgreSQL server.')
+        return conn
+    except (psycopg2.DatabaseError, Exception) as error:
+        print(f"Error: {error}")
+        return None
+
+def execute_query(conn, query):
+    """ Execute a SQL query and return the results """
+    try:
+        with conn.cursor() as cur:
+            cur.execute(query)
+            return cur.fetchall()
+    except (psycopg2.DatabaseError, Exception) as error:
+        print(f"Error executing query: {error}")
+        return None
+
+if __name__ == '__main__':
+    config = load_config()
+    conn = connect(config)
+    
+    if conn:
+        # Execute SELECT version() query
+        version_query = "SELECT version();"
+        result = execute_query(conn, version_query)
+        
+        if result:
+            print(f"PostgreSQL version: {result[0][0]}")
+        
+        # Don't forget to close the connection
+        conn.close()
+        print("Connection closed.")
+```
+
+这个模块主要实现了以下功能：
+
+1. `connect()` 函数：使用 `psycopg2.connect()` 方法建立数据库连接
+2. `execute_query()` 函数：用于执行 SQL 查询并获取结果
+3. 主程序部分：通过查询数据库版本来测试连接是否成功
+
+</div>
+
+## 运行程序
+
+确保已启动 Python 虚拟环境后，执行以下命令来测试数据库连接：
+
+```bash
+python connect.py
+```
+
+如果连接成功，你将看到类似下面的输出：
+
+```bash
+Connected to the PostgreSQL server.
+PostgreSQL version: PostgreSQL 14.10 (Ubuntu 14.10-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0, 64-bit
+Connection closed.
+```
+
+## 最佳实践
+
+1. 执行 Python 脚本或安装依赖包前，请确保已激活虚拟环境
+2. 使用配置文件管理数据库连接信息，便于维护和修改
+3. 在使用版本控制系统时，将包含敏感信息的 `database.ini` 添加到 `.gitignore` 中
+4. 在生产环境中建议使用连接池来提升性能
+5. 养成及时关闭数据库连接的习惯，避免资源泄露
+6. 合理使用异常处理机制，妥善处理可能出现的数据库错误
+
+## 常见问题排查
+
+如果遇到连接问题，请按以下步骤排查：
+
+1. 检查是否已使用 `source ./bin/activate` 命令启动虚拟环境
+2. 确认 PostgreSQL 数据库服务是否正常运行
+3. 仔细核对 `database.ini` 中的连接信息是否正确
+4. 查看数据库应用中的 PostgreSQL 日志，寻找可能的错误信息
+
+如需了解更多 Python 操作 PostgreSQL 的详细信息，请参考 [psycopg2 官方文档](https://www.psycopg.org/docs/)。

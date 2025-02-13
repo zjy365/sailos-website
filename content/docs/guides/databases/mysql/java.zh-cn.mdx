@@ -1,0 +1,302 @@
+---
+title: Java
+description: 在 Sealos Devbox 中使用 Java 连接 MySQL 数据库的完整指南
+---
+
+本教程将指导您如何在 Sealos Devbox 项目中使用 Java 连接 MySQL 数据库，并实现基本的数据库增删改查 (CRUD) 操作。
+
+## 准备工作
+
+- [已创建并配置 Java 环境的 Sealos Devbox 项目](/docs/guides/fundamentals/create-a-project)
+- [已通过 Sealos 数据库应用创建的 MySQL 实例](./)
+
+## 开发步骤
+
+<div className='steps [&_h4]:step'>
+
+#### 安装 MySQL JDBC 驱动
+
+要实现 Java 程序与 MySQL 数据库的连接，首先需要安装 MySQL JDBC 驱动程序。
+
+请前往 [MySQL Connector/J 下载页面](https://dev.mysql.com/downloads/connector/j/)下载最新版本的驱动程序 (JAR 格式文件，如 mysql-connector-j-9.0.0.jar)。
+
+#### 配置数据库连接
+
+在项目根目录创建 `db.properties` 配置文件：
+
+```ini title="db.properties"
+db.url=jdbc:mysql://your_database_host:3306/your_database_name
+db.username=your_username
+db.password=your_password
+```
+
+请将配置项替换为您在 Sealos 数据库应用中获取的 MySQL 连接信息。
+
+#### 创建数据库配置类
+
+新建 `DatabaseConfig.java` 文件，用于读取和管理数据库配置：
+
+```java title="DatabaseConfig.java"
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
+public class DatabaseConfig {
+    private static final Properties properties = new Properties();
+
+    static {
+        try (InputStream input = DatabaseConfig.class.getClassLoader().getResourceAsStream("db.properties")) {
+            if (input == null) {
+                System.out.println("Sorry, unable to find db.properties");
+                System.exit(1);
+            }
+            properties.load(input);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static String getDbUrl() {
+        return properties.getProperty("db.url");
+    }
+
+    public static String getDbUsername() {
+        return properties.getProperty("db.username");
+    }
+
+    public static String getDbPassword() {
+        return properties.getProperty("db.password");
+    }
+}
+```
+
+`DatabaseConfig` 类提供以下功能：
+
+- 从 `db.properties` 文件读取数据库配置信息
+- 通过静态方法获取数据库连接参数
+- 避免在代码中硬编码敏感信息
+
+#### 定义数据模型
+
+创建 `Employee.java` 文件，定义员工数据模型：
+
+```java title="Employee.java"
+public class Employee {
+    private int id;
+    private String name;
+    private String position;
+
+    public Employee(int id, String name, String position) {
+        this.id = id;
+        this.name = name;
+        this.position = position;
+    }
+
+    // Getters and setters
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getPosition() { return position; }
+    public void setPosition(String position) { this.position = position; }
+
+    @Override
+    public String toString() {
+        return "Employee{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", position='" + position + '\'' +
+                '}';
+    }
+}
+```
+`Employee` 类定义了员工的数据结构。它包含员工编号、姓名和职位字段，并提供构造方法、getter/setter 方法，以及一个方便打印员工信息的 `toString` 方法。
+
+#### 实现数据库操作
+
+创建 `DB.java` 文件，实现数据库连接和 CRUD 操作：
+
+```java title="DB.java"
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class DB {
+    public static Connection getConnection() throws SQLException {
+        String jdbcUrl = DatabaseConfig.getDbUrl();
+        String user = DatabaseConfig.getDbUsername();
+        String password = DatabaseConfig.getDbPassword();
+
+        return DriverManager.getConnection(jdbcUrl, user, password);
+    }
+
+    public static void createTable() throws SQLException {
+        String sql = "CREATE TABLE IF NOT EXISTS employees (" +
+                     "id INT AUTO_INCREMENT PRIMARY KEY," +
+                     "name VARCHAR(100) NOT NULL," +
+                     "position VARCHAR(100) NOT NULL)";
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    public static void insertEmployee(String name, String position) throws SQLException {
+        String sql = "INSERT INTO employees (name, position) VALUES (?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, name);
+            pstmt.setString(2, position);
+            pstmt.executeUpdate();
+        }
+    }
+
+    public static List<Employee> getEmployees() throws SQLException {
+        List<Employee> employees = new ArrayList<>();
+        String sql = "SELECT id, name, position FROM employees";
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                employees.add(new Employee(
+                    rs.getInt("id"),
+                    rs.getString("name"),
+                    rs.getString("position")
+                ));
+            }
+        }
+        return employees;
+    }
+
+    public static void updateEmployee(int id, String name, String position) throws SQLException {
+        String sql = "UPDATE employees SET name = ?, position = ? WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, name);
+            pstmt.setString(2, position);
+            pstmt.setInt(3, id);
+            pstmt.executeUpdate();
+        }
+    }
+
+    public static void deleteEmployee(int id) throws SQLException {
+        String sql = "DELETE FROM employees WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            pstmt.executeUpdate();
+        }
+    }
+}
+```
+`DB` 类用于处理所有数据库相关操作：
+
+- `getConnection()` 方法通过 `DatabaseConfig` 中配置的连接参数来连接 MySQL 数据库。
+- 连接成功时会返回一个 `Connection` 对象，连接失败则会抛出 `SQLException` 异常。
+- 其他方法 (如 `createTable`、`insertEmployee` 等) 都会使用这个连接来执行 CRUD 操作。
+- 每个方法都会创建一个新的连接，执行相应操作后，连接会通过 try-with-resources 机制自动关闭，以确保资源得到妥善管理。
+
+#### 编写主程序
+
+创建 `Main.java` 文件，测试数据库操作：
+
+```java title="Main.java"
+import java.sql.SQLException;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        try {
+            System.out.println("Connecting to the MySQL database...");
+
+            // Create the employees table
+            DB.createTable();
+            System.out.println("Employees table created (if not exists).");
+
+            // Insert sample employees
+            DB.insertEmployee("John Doe", "Developer");
+            DB.insertEmployee("Jane Smith", "Designer");
+            System.out.println("Sample employees inserted.");
+
+            // Retrieve and display all employees
+            List<Employee> employees = DB.getEmployees();
+            System.out.println("Employees:");
+            for (Employee emp : employees) {
+                System.out.println(emp);
+            }
+
+            // Update an employee
+            DB.updateEmployee(1, "John Doe", "Senior Developer");
+            System.out.println("Employee updated.");
+
+            // Delete an employee
+            DB.deleteEmployee(2);
+            System.out.println("Employee deleted.");
+
+            // Display updated employee list
+            employees = DB.getEmployees();
+            System.out.println("\nUpdated Employees:");
+            for (Employee emp : employees) {
+                System.out.println(emp);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Database operation error: " + e.getMessage());
+        }
+    }
+}
+```
+
+`Main` 类展示了如何使用 `DB` 类来执行各种数据库操作：
+
+- 依次执行创建数据表、插入示例数据、查询并展示员工信息、更新员工信息、删除员工记录，并最终显示更新后的完整列表等操作。
+- 每个数据库操作都使用 try-catch 语句块进行异常处理，以捕获可能出现的 `SQLException`。
+- 程序通过调用 `DB` 类的方法来执行操作，这些方法能够自动管理数据库连接，确保每次操作时都能正确建立连接并在完成后关闭。
+
+</div>
+
+## 编译和运行
+
+在终端中执行以下命令来编译并运行程序：
+
+```bash
+javac -cp .:mysql-connector-j-9.0.0.jar *.java
+java -cp .:mysql-connector-j-9.0.0.jar Main
+```
+
+注意：请将命令中的 `mysql-connector-j-9.0.0.jar` 替换为您实际下载的驱动程序文件名。
+
+## 最佳实践
+
+1. **数据库配置管理**
+   - 使用配置文件存储连接信息
+   - 避免在代码中硬编码敏感数据
+   - 实现专门的配置管理类
+
+2. **代码最佳实践**
+   - 使用预处理语句防止 SQL 注入
+   - 采用 try-with-resources 自动关闭资源
+   - 统一的异常处理机制
+
+3. **性能优化**
+   - 合理管理数据库连接
+   - 及时释放资源
+   - 批量处理大量数据
+
+## 常见问题排查
+
+如果遇到连接问题，请检查：
+
+1. 数据库连接信息是否正确
+   - 检查 `db.properties` 中的配置
+   - 确认数据库用户名和密码
+
+2. 网络连接是否正常
+   - 确保 MySQL 实例可访问
+   - 检查 Devbox 网络设置
+
+3. 开发环境配置
+   - JDBC 驱动是否正确安装
+   - Java 环境变量是否配置正确
+
+更多详细信息，请参考 [MySQL Connector/J 官方文档](https://dev.mysql.com/doc/connector-j/en/)。

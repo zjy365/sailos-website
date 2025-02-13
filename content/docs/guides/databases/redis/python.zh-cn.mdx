@@ -1,0 +1,171 @@
+---
+title: Python
+description: 在 Sealos Devbox 中使用 Python 连接 Redis 数据库的完整指南
+---
+
+本教程将指导您如何在 Sealos Devbox 项目中使用 Python 连接和操作 Redis 数据库。
+
+## 准备工作
+
+在开始之前，请确保：
+
+- [已创建并配置好 Python 开发环境的 Sealos Devbox 项目](/docs/guides/fundamentals/create-a-project)
+- [已在 Sealos 数据库应用中创建 Redis 数据库实例](./)
+
+## 激活 Python 环境
+
+首先，我们需要在 Devbox 中激活 Python 虚拟环境。打开 Cursor IDE 的终端，执行相应的激活命令：
+
+```bash
+source ./bin/activate
+```
+
+当您看到终端提示符发生变化时，说明虚拟环境已成功激活。
+
+## 安装依赖包
+
+在激活的虚拟环境中，执行以下命令安装所需的依赖包：
+
+```bash
+pip install redis python-dotenv
+```
+
+这将安装以下核心组件：
+- `redis`：Python 的 Redis 客户端库，用于与 Redis 数据库交互
+- `python-dotenv`：用于管理环境变量的工具包，可从。env 文件读取配置
+
+## 连接配置
+
+<div className='steps [&_h4]:step'>
+
+#### 配置环境变量
+
+首先，在项目根目录下创建 `.env` 文件，添加数据库连接信息：
+
+```ini title=".env"
+REDIS_HOST=your_redis_host
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+```
+
+注意：请将配置信息替换为您在 Sealos 数据库应用中获取的实际连接参数。
+
+#### 创建 Redis 连接模块
+
+创建 `redis_connection.py` 文件，实现以下核心功能：
+
+```python title="redis_connection.py"
+import os
+from dotenv import load_dotenv
+import redis
+
+# Load environment variables
+load_dotenv()
+
+def get_redis_connection():
+    try:
+        r = redis.Redis(
+            host=os.getenv('REDIS_HOST'),
+            port=os.getenv('REDIS_PORT'),
+            password=os.getenv('REDIS_PASSWORD'),
+            decode_responses=True
+        )
+        r.ping()  # Test the connection
+        print("Successfully connected to Redis")
+        return r
+    except redis.ConnectionError as e:
+        print(f"Error connecting to Redis: {e}")
+        return None
+
+def close_connection(connection):
+    if connection:
+        connection.close()
+        print("Redis connection closed")
+```
+
+1. `get_redis_connection()`：负责建立 Redis 数据库连接
+   - 从环境变量读取连接参数
+   - 返回连接对象 (连接成功) 或 None (连接失败)
+
+2. `close_connection(connection)`：用于安全关闭 Redis 连接
+
+#### 编写测试脚本
+
+创建 `test_redis.py` 文件，用于验证连接并测试基本操作：
+
+```python title="test_redis.py"
+from redis_connection import get_redis_connection, close_connection
+
+def set_value(r, key, value):
+    r.set(key, value)
+    print(f"Set {key}: {value}")
+
+def get_value(r, key):
+    value = r.get(key)
+    print(f"Get {key}: {value}")
+    return value
+
+def main():
+    redis_conn = get_redis_connection()
+    if redis_conn:
+        try:
+            # String operations
+            set_value(redis_conn, "mykey", "Hello from Sealos Devbox!")
+            get_value(redis_conn, "mykey")
+
+            # List operations
+            redis_conn.lpush("mylist", "element1", "element2", "element3")
+            print("List after push:", redis_conn.lrange("mylist", 0, -1))
+            print("Popped element:", redis_conn.lpop("mylist"))
+            print("List after pop:", redis_conn.lrange("mylist", 0, -1))
+
+            # Hash operations
+            redis_conn.hset("myhash", "field1", "value1")
+            redis_conn.hset("myhash", "field2", "value2")
+            print("Hash value for field1:", redis_conn.hget("myhash", "field1"))
+            print("All hash fields:", redis_conn.hgetall("myhash"))
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        finally:
+            close_connection(redis_conn)
+
+if __name__ == "__main__":
+    main()
+```
+
+此测试脚本涵盖了常用的 Redis 操作：
+- 字符串的存取
+- 列表操作 (入队、出队和范围查询)
+- 哈希表操作 (设置、获取单个字段和获取所有字段)
+
+</div>
+
+## 运行测试
+
+确保 Python 虚拟环境已激活，然后运行测试脚本：
+
+```bash
+python test_redis.py
+```
+
+如果配置正确，您将看到连接成功提示以及各项操作的执行结果。
+
+## 最佳实践
+
+1. 始终在激活的虚拟环境中执行 Python 脚本和包管理操作
+2. 使用环境变量管理敏感信息 (如数据库连接凭据)
+3. 及时关闭数据库连接，避免资源泄漏
+4. 实现完善的异常处理机制
+5. 在生产环境中使用连接池优化性能
+
+## 常见问题排查
+
+如果遇到连接问题，请按以下步骤检查：
+
+1. 确认是否已正确激活 Python 虚拟环境 (使用 `source ./bin/activate`)
+2. 检查 Redis 数据库服务是否正常运行且网络可达
+3. 仔细核对 `.env` 文件中的连接参数
+4. 查看 Sealos 数据库应用中的 Redis 日志，排查可能的错误
+
+如需深入了解 Python Redis 客户端的更多用法，请参考 [Redis-py 官方文档](https://redis-py.readthedocs.io/en/stable/)。

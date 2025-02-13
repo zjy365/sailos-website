@@ -1,0 +1,218 @@
+---
+title: Python
+description: 在 Sealos Devbox 中使用 Python 连接 MySQL 数据库的完整指南
+---
+
+本教程将指导您如何在 Sealos Devbox 项目中使用 Python 连接和操作 MySQL 数据库，帮助您快速掌握相关开发技能。
+
+## 准备工作
+
+在开始之前，请确保您已经：
+
+- [创建并配置好 Python 环境的 Sealos Devbox 项目](/docs/guides/fundamentals/create-a-project)
+- [在 Sealos 数据库应用中创建了 MySQL 数据库](./)
+
+## 激活 Python 环境
+
+在开始编写代码之前，需要先激活 Devbox 中的 Python 虚拟环境。打开 Cursor IDE 终端并执行：
+
+```bash
+source ./bin/activate
+```
+
+当您看到终端提示符发生变化时，表示虚拟环境已成功激活，可以继续后续操作。
+
+## 安装依赖包
+
+在 Cursor 终端中执行以下命令安装所需的依赖包：
+
+```bash
+pip install mysql-connector-python python-dotenv
+```
+
+这将安装：
+- `mysql-connector-python`：MySQL 官方提供的 Python 驱动程序
+- `python-dotenv`：用于读取。env 文件中环境变量的工具包
+
+## 配置连接
+
+<div className='steps [&_h4]:step'>
+
+#### 设置环境变量
+
+首先，在项目根目录下创建 `.env` 文件，添加以下配置信息：
+
+```ini title=".env"
+DB_HOST=your_database_host
+DB_USER=your_username
+DB_PASSWORD=your_password
+DB_NAME=your_database_name
+DB_PORT=3306
+```
+
+请将上述配置项替换为您在 Sealos 数据库应用中获取的实际连接信息。
+
+#### 创建数据库连接模块
+
+创建 `db_connection.py` 文件，编写数据库连接代码：
+
+```python title="db_connection.py"
+import os
+from dotenv import load_dotenv
+import mysql.connector
+from mysql.connector import Error
+ 
+# Load environment variables
+load_dotenv()
+ 
+def get_db_connection():
+    try:
+        # First, connect without specifying a database
+        connection = mysql.connector.connect(
+            host=os.getenv('DB_HOST'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            port=os.getenv('DB_PORT')
+        )
+        if connection.is_connected():
+            cursor = connection.cursor()
+            
+            # Create the database if it doesn't exist
+            db_name = os.getenv('DB_NAME')
+            cursor.execute(f"CREATE DATABASE IF NOT EXISTS {db_name}")
+            
+            # Close the initial connection
+            cursor.close()
+            connection.close()
+            
+            # Reconnect with the database specified
+            connection = mysql.connector.connect(
+                host=os.getenv('DB_HOST'),
+                user=os.getenv('DB_USER'),
+                password=os.getenv('DB_PASSWORD'),
+                database=db_name,
+                port=os.getenv('DB_PORT')
+            )
+            
+            if connection.is_connected():
+                print(f"Successfully connected to MySQL database '{db_name}'")
+                return connection
+    except Error as e:
+        print(f"Error connecting to MySQL database: {e}")
+        return None
+ 
+def close_connection(connection):
+    if connection:
+        connection.close()
+        print("MySQL connection closed")
+```
+
+该模块包含两个主要函数：
+
+1. `get_db_connection()`：使用环境变量中的配置信息建立数据库连接。连接成功返回连接对象，失败返回 None。
+
+2. `close_connection(connection)`：用于在数据库操作完成后关闭连接。
+
+#### 创建测试脚本
+
+创建 `test_mysql.py` 文件，用于测试数据库连接和基本操作：
+
+```python title="test_mysql.py"
+from mysql.connector import Error
+from db_connection import get_db_connection, close_connection
+
+def create_table(cursor):
+    create_table_query = """
+    CREATE TABLE IF NOT EXISTS employees (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100),
+        email VARCHAR(100)
+    )
+    """
+    cursor.execute(create_table_query)
+    print("Table 'employees' created successfully")
+
+def insert_employee(cursor, name, email):
+    insert_query = "INSERT INTO employees (name, email) VALUES (%s, %s)"
+    cursor.execute(insert_query, (name, email))
+    print(f"Employee {name} inserted successfully")
+
+def get_all_employees(cursor):
+    select_query = "SELECT * FROM employees"
+    cursor.execute(select_query)
+    employees = cursor.fetchall()
+    for employee in employees:
+        print(f"ID: {employee[0]}, Name: {employee[1]}, Email: {employee[2]}")
+
+def main():
+    connection = get_db_connection()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            
+            create_table(cursor)
+            
+            insert_employee(cursor, "John Doe", "john@example.com")
+            insert_employee(cursor, "Jane Smith", "jane@example.com")
+            
+            print("\nAll Employees:")
+            get_all_employees(cursor)
+            
+            connection.commit()
+        except Error as e:
+            print(f"Error: {e}")
+        finally:
+            if cursor:
+                cursor.close()
+            close_connection(connection)
+
+if __name__ == "__main__":
+    main()
+```
+
+测试脚本包含以下核心功能：
+
+1. `create_table(cursor)`：创建员工信息表，展示了标准的建表操作。
+
+2. `insert_employee(cursor, name, email)`：添加员工信息，演示了参数化查询的使用方法，可有效防止 SQL 注入。
+
+3. `get_all_employees(cursor)`：查询并显示所有员工信息，展示了查询结果的处理方法。
+
+4. `main()`：主函数负责：
+   - 建立数据库连接
+   - 创建数据表
+   - 插入示例数据
+   - 查询数据
+   - 错误处理
+   - 关闭数据库连接
+
+</div>
+
+## 运行测试
+
+确保已激活虚拟环境后，执行测试脚本：
+
+```bash
+python test_mysql.py
+```
+
+如果配置正确，您将看到数据库连接、表创建、数据插入和查询的成功提示。
+
+## 最佳实践
+
+1. 执行 Python 脚本或安装包前，务必先激活虚拟环境
+2. 将数据库密码等敏感信息存储在环境变量中
+3. 及时关闭数据库连接和游标，释放系统资源
+4. 使用参数化查询，预防 SQL 注入攻击
+5. 做好异常处理，妥善处理各类错误情况
+
+## 常见问题排查
+
+如果遇到连接问题，请检查：
+
+1. 是否已执行 `source ./bin/activate` 激活虚拟环境
+2. MySQL 数据库是否正常运行且可访问
+3. `.env` 文件中的连接信息是否正确
+4. 查看数据库应用的 MySQL 日志是否有错误信息
+
+更多 MySQL 和 Python 的使用说明，请参考 [MySQL Connector/Python 官方文档](https://dev.mysql.com/doc/connector-python/en/)。

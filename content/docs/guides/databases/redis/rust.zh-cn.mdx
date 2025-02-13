@@ -1,0 +1,135 @@
+---
+title: Rust
+description: 在 Sealos Devbox 中使用 Rust 连接 Redis 数据库的完整指南
+---
+
+本教程将指导您如何在 Sealos Devbox 项目中使用 Rust 语言连接和操作 Redis 数据库。
+
+## 准备工作
+
+- [已创建并配置好 Rust 开发环境的 Sealos Devbox 项目](/docs/guides/fundamentals/create-a-project)
+- [已在 Sealos 数据库应用中创建的 Redis 实例](./)
+
+## 安装依赖
+
+在项目中，您需要在 `Cargo.toml` 文件中添加以下依赖项：
+
+```toml title="Cargo.toml"
+[dependencies]
+redis = "0.22.0"
+dotenv = "0.15.0"
+```
+
+这些依赖项包括：
+- `redis`：用于 Redis 数据库操作的 Rust 客户端
+- `dotenv`：用于管理环境变量配置的工具库
+
+## 配置连接
+
+<div className='steps [&_h4]:step'>
+
+#### 配置环境变量
+
+首先，我们需要配置数据库连接信息。在项目根目录下创建 `.env` 文件，添加以下内容：
+
+```ini title=".env"
+REDIS_HOST=your_redis_host
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+```
+
+请将上述配置中的占位符替换为您从 Sealos 数据库应用中获取的实际 Redis 连接信息。
+
+#### 编写主程序代码
+
+创建 `src/main.rs` 文件，添加以下代码：
+
+```rust title="src/main.rs"
+use redis::Commands;
+use dotenv::dotenv;
+use std::env;
+
+fn main() -> redis::RedisResult<()> {
+    // Load environment variables from .env file
+    dotenv().ok();
+
+    // Get Redis connection details from environment variables
+    let redis_host = env::var("REDIS_HOST").expect("REDIS_HOST must be set");
+    let redis_port = env::var("REDIS_PORT").expect("REDIS_PORT must be set");
+    let redis_password = env::var("REDIS_PASSWORD").expect("REDIS_PASSWORD must be set");
+
+    // Create the Redis connection URL
+    let redis_url = format!("redis://:{}@{}:{}", redis_password, redis_host, redis_port);
+
+    // Create a client
+    let client = redis::Client::open(redis_url)?;
+
+    // Connect to Redis
+    let mut con = client.get_connection()?;
+
+    // Set a key
+    let _: () = con.set("my_key", "Hello from Sailos Devbox!")?;
+
+    // Get a key
+    let value: String = con.get("my_key")?;
+    println!("Retrieved value: {}", value);
+
+    // Set a hash
+    let _: () = redis::cmd("HSET")
+        .arg("my_hash")
+        .arg("field1")
+        .arg("value1")
+        .arg("field2")
+        .arg("value2")
+        .query(&mut con)?;
+
+    // Get hash fields
+    let hash_value: std::collections::HashMap<String, String> = con.hgetall("my_hash")?;
+    println!("Retrieved hash: {:?}", hash_value);
+
+    Ok(())
+}
+```
+
+这段代码的主要组成部分：
+
+1. **导入依赖**：引入 `redis` 和 `dotenv` 模块中所需的功能。
+
+2. **主函数定义**：`main` 函数作为程序入口点，包含所有 Redis 操作逻辑。
+
+3. **环境配置加载**：从 `.env` 文件读取并解析 Redis 连接参数。
+
+4. **建立连接**：创建 Redis 客户端实例并建立数据库连接。
+
+5. **基础操作示例**：演示了常用的 Redis 操作，包括键值对的设置、获取，以及哈希表的操作。
+
+</div>
+
+## 运行程序
+
+要运行此示例程序，请在终端中执行以下命令：
+
+```bash
+cargo run
+```
+
+执行后，程序将编译并运行 `main` 函数中的 Redis 操作示例。
+
+## 最佳实践
+
+1. 将数据库连接信息存储在环境变量中，避免硬编码。
+2. 充分利用 Rust 的 `Result` 类型进行错误处理。
+3. 使用 `redis::Commands` trait 实现更符合 Rust 风格的 Redis 操作。
+4. 及时释放数据库连接 (在本例中，`con` 变量超出作用域时会自动处理)。
+5. 在生产环境中建议使用连接池来提高性能和连接管理效率。
+
+## 常见问题排查
+
+如果遇到连接问题，请检查以下几点：
+
+1. 确认 `.env` 文件中的 Redis 连接信息是否正确。
+2. 验证 Redis 实例是否正常运行且可以访问。
+3. 检查 Devbox 环境的网络连接是否正常。
+4. 确保 `Cargo.toml` 中的依赖项配置正确且完整。
+
+更多关于 Rust 操作 Redis 的详细信息，请参阅 [redis-rs 官方文档](https://docs.rs/redis/latest/redis/)。

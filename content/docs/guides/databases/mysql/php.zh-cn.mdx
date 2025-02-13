@@ -1,0 +1,152 @@
+---
+title: PHP
+description: 在 Sealos Devbox 中使用 PHP 连接 MySQL 数据库的完整指南
+---
+
+本教程将指导您如何在 Sealos Devbox 项目中使用 PHP 连接和操作 MySQL 数据库。
+
+## 准备工作
+
+在开始之前，请确保您已经：
+
+- [在 Sealos Devbox 中创建并配置了 PHP 运行环境的项目](/docs/guides/fundamentals/create-a-project)
+- [在 Sealos 数据库应用中成功创建了 MySQL 数据库实例](./)
+
+## 安装依赖
+
+在开始使用之前，需要确保 PHP 环境中已安装 MySQL 扩展。请在 Devbox 终端中执行以下命令进行安装和验证：
+
+```bash
+sudo apt-get update
+sudo apt-get install php-mysql -y
+```
+
+## 配置数据库连接
+
+<div className='steps [&_h4]:step'>
+
+#### 创建配置文件
+
+首先创建一个用于存储数据库连接参数的配置文件。在项目根目录下创建 `config.php` 文件：
+
+```php title="config.php"
+<?php
+return [
+    'host' => 'your_database_host',
+    'port' => '3306',
+    'dbname' => 'your_database_name',
+    'user' => 'your_username',
+    'password' => 'your_password'
+];
+```
+
+请将上述配置项替换为您在 Sealos 数据库应用中获取的实际 MySQL 连接信息。
+
+#### 实现数据库连接
+
+接下来创建一个处理数据库连接的工具文件 `db_connect.php`：
+
+```php title="db_connect.php"
+<?php
+function getDbConnection() {
+    $config = include 'config.php';
+    
+    $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset=utf8mb4";
+    
+    try {
+        $pdo = new PDO($dsn, $config['user'], $config['password'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        echo "Connected successfully to the database.\n";
+        return $pdo;
+    } catch (PDOException $e) {
+        die("Connection failed: " . $e->getMessage());
+    }
+}
+```
+
+此函数使用 PDO (PHP 数据对象) 建立与 MySQL 的安全连接，并设置了推荐的连接选项。
+
+#### 编写测试脚本
+
+创建一个测试脚本 `test_db.php` 来验证数据库连接并执行基本操作：
+
+```php title="test_db.php"
+<?php
+require_once 'db_connect.php';
+
+$pdo = getDbConnection();
+
+// Create a table
+$pdo->exec("CREATE TABLE IF NOT EXISTS employees (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    position VARCHAR(100) NOT NULL
+)");
+echo "Table created successfully.\n";
+
+// Insert a record
+$stmt = $pdo->prepare("INSERT INTO employees (name, position) VALUES (?, ?)");
+$stmt->execute(['John Doe', 'Developer']);
+echo "Record inserted successfully.\n";
+
+// Query the table
+$stmt = $pdo->query("SELECT * FROM employees");
+echo "Employees:\n";
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    echo "ID: {$row['id']}, Name: {$row['name']}, Position: {$row['position']}\n";
+}
+
+// Close the connection
+$pdo = null;
+```
+
+</div>
+
+## 运行测试
+
+在 Devbox 终端中执行以下命令运行测试脚本：
+
+```bash
+php test_db.php
+```
+
+如果配置正确，您将看到连接成功的提示以及测试操作的结果。
+
+## 最佳实践
+
+在使用 PHP 操作 MySQL 数据库时，请注意以下最佳实践：
+
+1. **安全性**
+   - 使用环境变量或独立的配置文件存储数据库凭据
+   - 始终使用 PDO 预处理语句防止 SQL 注入
+   - 妥善处理敏感信息，避免在代码中硬编码
+
+2. **性能优化**
+   - 合理使用数据库连接池
+   - 适时关闭数据库连接释放资源
+   - 优化 SQL 查询语句，避免冗余操作
+
+3. **错误处理**
+   - 使用 try-catch 语句捕获和处理异常
+   - 实现适当的日志记录机制
+   - 为用户提供友好的错误提示
+
+## 常见问题排查
+
+如果遇到连接或操作问题，请按以下步骤排查：
+
+1. **连接问题**
+   - 验证配置文件中的数据库连接信息是否正确
+   - 确认 MySQL 服务是否正常运行
+   - 检查网络连接和防火墙设置
+
+2. **环境问题**
+   - 确保 PHP MySQL 扩展已正确安装
+   - 检查 PHP 版本兼容性
+   - 验证必要的系统权限
+
+3. **操作问题**
+   - 检查 SQL 语句语法
+   - 确认数据库用户权限
+   - 查看 PHP 错误日志
+
+更多详细信息，请参考 [PHP MySQL 官方文档](https://www.php.net/manual/zh/book.mysql.php)。

@@ -1,0 +1,292 @@
+---
+title: Java
+description: 在 Sealos Devbox 中使用 Java 连接 PostgreSQL 数据库的完整指南
+---
+
+本教程将指导您如何在 Sealos Devbox 开发环境中使用 Java 语言连接 PostgreSQL 数据库，并实现基本的增删改查 (CRUD) 操作。
+
+## 准备工作
+
+在开始之前，请确保：
+- [已创建并配置好 Java 环境的 Sealos Devbox 项目](/docs/guides/fundamentals/create-a-project)
+- [已在 Sealos 数据库应用中创建好 PostgreSQL 数据库实例](./)
+
+## 环境配置
+
+<div className='steps [&_h4]:step'>
+
+#### 获取 PostgreSQL JDBC 驱动
+
+首先，您需要下载 PostgreSQL JDBC 驱动程序来实现 Java 应用与 PostgreSQL 数据库的连接。
+
+请访问 [jdbc.postgresql.org 官方下载页面](https://jdbc.postgresql.org/download/)获取最新版本的驱动程序 (JAR 包)，如：postgresql-42.7.1.jar。
+
+#### 配置数据库连接参数
+
+在项目根目录下创建 `db.properties` 文件，用于存储数据库连接信息：
+
+```ini title="db.properties"
+db.url=jdbc:postgresql://your_database_host:5432/your_database_name
+db.username=your_username
+db.password=your_password
+```
+
+请将上述占位符替换为您在 Sealos 数据库应用中获取的实际 PostgreSQL 连接参数。
+
+#### 创建数据库配置类
+
+新建 `DatabaseConfig.java` 文件，用于管理数据库配置：
+
+```java title="DatabaseConfig.java"
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
+public class DatabaseConfig {
+    private static final Properties properties = new Properties();
+
+    static {
+        try (InputStream input = DatabaseConfig.class.getClassLoader().getResourceAsStream("db.properties")) {
+            if (input == null) {
+                System.out.println("Sorry, unable to find db.properties");
+                System.exit(1);
+            }
+            properties.load(input);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static String getDbUrl() {
+        return properties.getProperty("db.url");
+    }
+
+    public static String getDbUsername() {
+        return properties.getProperty("db.username");
+    }
+
+    public static String getDbPassword() {
+        return properties.getProperty("db.password");
+    }
+}
+```
+
+`DatabaseConfig` 类主要负责：
+- 从 `db.properties` 文件加载数据库配置信息
+- 提供获取数据库连接参数的静态方法
+- 确保配置文件加载的安全性和可靠性
+
+#### 定义数据模型
+
+创建 `Employee.java` 文件，定义员工信息的数据结构：
+
+```java title="Employee.java"
+public class Employee {
+    private int id;
+    private String name;
+    private String position;
+
+    public Employee(int id, String name, String position) {
+        this.id = id;
+        this.name = name;
+        this.position = position;
+    }
+
+    // Getters and setters
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getPosition() { return position; }
+    public void setPosition(String position) { this.position = position; }
+
+    @Override
+    public String toString() {
+        return "Employee{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", position='" + position + '\'' +
+                '}';
+    }
+}
+```
+
+`Employee` 类包含：
+- 基本属性：id、name 和 position
+- 构造方法和访问器方法 (getter/setter)
+- 重写的 function `toString() { [native code] }` 方法，方便数据展示
+
+#### 实现数据库操作
+
+创建 `DB.java` 文件，封装所有数据库操作：
+
+```java title="DB.java"
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class DB {
+    public static Connection getConnection() throws SQLException {
+        String jdbcUrl = DatabaseConfig.getDbUrl();
+        String user = DatabaseConfig.getDbUsername();
+        String password = DatabaseConfig.getDbPassword();
+
+        return DriverManager.getConnection(jdbcUrl, user, password);
+    }
+
+    public static void createTable() throws SQLException {
+        String sql = "CREATE TABLE IF NOT EXISTS employees (" +
+                     "id SERIAL PRIMARY KEY," +
+                     "name VARCHAR(100) NOT NULL," +
+                     "position VARCHAR(100) NOT NULL)";
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    public static void insertEmployee(String name, String position) throws SQLException {
+        String sql = "INSERT INTO employees (name, position) VALUES (?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, name);
+            pstmt.setString(2, position);
+            pstmt.executeUpdate();
+        }
+    }
+
+    public static List<Employee> getEmployees() throws SQLException {
+        List<Employee> employees = new ArrayList<>();
+        String sql = "SELECT id, name, position FROM employees";
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                employees.add(new Employee(
+                    rs.getInt("id"),
+                    rs.getString("name"),
+                    rs.getString("position")
+                ));
+            }
+        }
+        return employees;
+    }
+
+    public static void updateEmployee(int id, String name, String position) throws SQLException {
+        String sql = "UPDATE employees SET name = ?, position = ? WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, name);
+            pstmt.setString(2, position);
+            pstmt.setInt(3, id);
+            pstmt.executeUpdate();
+        }
+    }
+
+    public static void deleteEmployee(int id) throws SQLException {
+        String sql = "DELETE FROM employees WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            pstmt.executeUpdate();
+        }
+    }
+}
+```
+
+`DB` 类提供以下功能：
+- 数据库连接管理
+- 数据表的创建和维护
+- 完整的 CRUD 操作实现
+- 异常处理和资源管理
+
+#### 编写主程序
+
+最后，创建 `Main.java` 文件，演示如何使用上述组件：
+
+```java title="Main.java"
+import java.sql.SQLException;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        try {
+            System.out.println("Connecting to the PostgreSQL database...");
+
+            // Create the employees table
+            DB.createTable();
+            System.out.println("Employees table created (if not exists).");
+
+            // Insert sample employees
+            DB.insertEmployee("John Doe", "Developer");
+            DB.insertEmployee("Jane Smith", "Designer");
+            System.out.println("Sample employees inserted.");
+
+            // Retrieve and display all employees
+            List<Employee> employees = DB.getEmployees();
+            System.out.println("Employees:");
+            for (Employee emp : employees) {
+                System.out.println(emp);
+            }
+
+            // Update an employee
+            DB.updateEmployee(1, "John Doe", "Senior Developer");
+            System.out.println("Employee updated.");
+
+            // Delete an employee
+            DB.deleteEmployee(2);
+            System.out.println("Employee deleted.");
+
+            // Display updated employee list
+            employees = DB.getEmployees();
+            System.out.println("\nUpdated Employees:");
+            for (Employee emp : employees) {
+                System.out.println(emp);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Database operation error: " + e.getMessage());
+        }
+    }
+}
+```
+
+主程序展示了：
+- 数据库连接的建立
+- 数据表的创建
+- 数据的插入和查询
+- 记录的更新和删除
+- 完整的异常处理流程
+
+</div>
+
+## 编译和运行
+
+在终端中执行以下命令来编译和运行示例程序：
+
+```bash
+javac -cp .:postgresql-42.6.0.jar *.java
+java -cp .:postgresql-42.6.0.jar Main
+```
+
+如果配置正确，您将看到程序执行各项数据库操作的输出结果。
+
+## 最佳实践
+
+1. 使用配置文件管理数据库连接信息，避免硬编码
+2. 创建专门的配置类处理数据库属性
+3. 采用面向对象方式组织数据库操作
+4. 使用 try-with-resources 语句自动关闭数据库连接
+5. 实现预处理语句预防 SQL 注入攻击
+6. 完善的异常处理机制和错误提示
+
+## 常见问题排查
+
+如果遇到连接问题，请按以下步骤排查：
+
+1. 核实 `db.properties` 文件中的数据库连接参数是否正确
+2. 确认 PostgreSQL 数据库服务是否正常运行且可访问
+3. 检查 Devbox 环境的网络连接状态
+4. 验证 PostgreSQL JDBC 驱动是否正确放置在项目目录中
+
+更多关于 Java 操作 PostgreSQL 的详细信息，请参考 [PostgreSQL JDBC 驱动官方文档](https://jdbc.postgresql.org/documentation/head/index.html)。

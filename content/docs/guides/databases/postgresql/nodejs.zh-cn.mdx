@@ -1,0 +1,282 @@
+---
+title: Node.js
+description: 在 Sealos Devbox 中使用 Node.js 操作 PostgreSQL 数据库的完整指南
+---
+
+本教程将为您详细介绍如何在 Sealos Devbox 开发环境中使用 Node.js 连接和操作 PostgreSQL 数据库。
+
+## 准备工作
+
+- [已配置 Node.js 环境的 Sealos Devbox 项目](/docs/guides/fundamentals/create-a-project)
+- [通过 Sealos 数据库应用创建的 PostgreSQL 数据库实例](./)
+
+## 安装依赖
+
+在 Cursor 终端中运行以下命令安装所需的依赖包：
+
+```bash
+npm install pg dotenv
+```
+
+这将安装两个核心包：
+- `pg`：Node.js 的 PostgreSQL 客户端，提供数据库连接和操作功能
+- `dotenv`：用于从 `.env` 文件中加载环境变量的工具包
+
+## 配置数据库连接
+
+<div className='steps [&_h4]:step'>
+
+#### 初始化数据库客户端
+
+首先，引入必要的模块并配置数据库连接参数：
+
+```javascript
+const { Client } = require('pg');
+require('dotenv').config();
+
+const dbConfig = {
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME,
+};
+
+const client = new Client(dbConfig);
+```
+
+#### 实现数据库连接和查询方法
+
+接下来，创建用于管理数据库连接和执行查询的核心方法：
+
+```javascript
+async function connectToDatabase() {
+  try {
+    await client.connect();
+    console.log('Connected to PostgreSQL database');
+  } catch (err) {
+    console.error('Error connecting to PostgreSQL database', err);
+    throw err;
+  }
+}
+
+async function executeQuery(query, values = []) {
+  try {
+    const result = await client.query(query, values);
+    return result.rows;
+  } catch (err) {
+    console.error('Error executing query', err);
+    throw err;
+  }
+}
+
+async function closeDatabaseConnection() {
+  try {
+    await client.end();
+    console.log('Connection to PostgreSQL closed');
+  } catch (err) {
+    console.error('Error closing connection', err);
+  }
+}
+```
+
+#### 编写数据库操作方法
+
+现在，让我们实现具体的数据库操作方法：
+
+```javascript
+async function createTable() {
+  const createTableQuery = `
+    CREATE TABLE IF NOT EXISTS employees (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      position VARCHAR(100) NOT NULL
+    );
+  `;
+  await executeQuery(createTableQuery);
+  console.log('Table created successfully');
+}
+
+async function insertEmployee(name, position) {
+  const insertQuery = 'INSERT INTO employees(name, position) VALUES ($1, $2) RETURNING *';
+  const values = [name, position];
+  const result = await executeQuery(insertQuery, values);
+  console.log('Employee inserted:', result[0]);
+}
+
+async function updateEmployee(id, name, position) {
+  const updateQuery = 'UPDATE employees SET name = $1, position = $2 WHERE id = $3 RETURNING *';
+  const values = [name, position, id];
+  const result = await executeQuery(updateQuery, values);
+  console.log('Employee updated:', result[0]);
+}
+
+async function getAllEmployees() {
+  const selectQuery = 'SELECT * FROM employees';
+  const employees = await executeQuery(selectQuery);
+  console.log('All employees:', employees);
+}
+```
+
+#### 编写主函数测试功能
+
+最后，创建一个主函数来演示所有操作：
+
+```javascript
+async function main() {
+  try {
+    await connectToDatabase();
+    await createTable();
+    await insertEmployee('John Doe', 'Developer');
+    await insertEmployee('Jane Smith', 'Designer');
+    await updateEmployee(1, 'John Updated', 'Senior Developer');
+    await getAllEmployees();
+  } catch (err) {
+    console.error('An error occurred:', err);
+  } finally {
+    await closeDatabaseConnection();
+  }
+}
+
+main();
+```
+
+</div>
+
+## 完整代码示例
+
+以下是完整的 Node.js PostgreSQL 数据库操作代码：
+
+```javascript title="test-connection.js"
+const { Client } = require('pg');
+require('dotenv').config();
+
+const dbConfig = {
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME,
+};
+
+const client = new Client(dbConfig);
+
+async function connectToDatabase() {
+  try {
+    await client.connect();
+    console.log('Connected to PostgreSQL database');
+  } catch (err) {
+    console.error('Error connecting to PostgreSQL database', err);
+    throw err;
+  }
+}
+
+async function executeQuery(query, values = []) {
+  try {
+    const result = await client.query(query, values);
+    return result.rows;
+  } catch (err) {
+    console.error('Error executing query', err);
+    throw err;
+  }
+}
+
+async function closeDatabaseConnection() {
+  try {
+    await client.end();
+    console.log('Connection to PostgreSQL closed');
+  } catch (err) {
+    console.error('Error closing connection', err);
+  }
+}
+
+async function createTable() {
+  const createTableQuery = `
+    CREATE TABLE IF NOT EXISTS employees (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      position VARCHAR(100) NOT NULL
+    );
+  `;
+  await executeQuery(createTableQuery);
+  console.log('Table created successfully');
+}
+
+async function insertEmployee(name, position) {
+  const insertQuery = 'INSERT INTO employees(name, position) VALUES ($1, $2) RETURNING *';
+  const values = [name, position];
+  const result = await executeQuery(insertQuery, values);
+  console.log('Employee inserted:', result[0]);
+}
+
+async function updateEmployee(id, name, position) {
+  const updateQuery = 'UPDATE employees SET name = $1, position = $2 WHERE id = $3 RETURNING *';
+  const values = [name, position, id];
+  const result = await executeQuery(updateQuery, values);
+  console.log('Employee updated:', result[0]);
+}
+
+async function getAllEmployees() {
+  const selectQuery = 'SELECT * FROM employees';
+  const employees = await executeQuery(selectQuery);
+  console.log('All employees:', employees);
+}
+
+async function main() {
+  try {
+    await connectToDatabase();
+    await createTable();
+    await insertEmployee('John Doe', 'Developer');
+    await insertEmployee('Jane Smith', 'Designer');
+    await updateEmployee(1, 'John Updated', 'Senior Developer');
+    await getAllEmployees();
+  } catch (err) {
+    console.error('An error occurred:', err);
+  } finally {
+    await closeDatabaseConnection();
+  }
+}
+
+main();
+```
+
+## 运行程序
+
+在运行脚本之前，需要在项目根目录创建 `.env` 文件，内容如下：
+
+```ini title=".env"
+DB_USER=your_username
+DB_PASSWORD=your_password
+DB_HOST=your_database_host
+DB_PORT=5432
+DB_NAME=your_database_name
+```
+
+请将示例中的占位符替换为您在 Sealos 数据库应用中获取的实际 PostgreSQL 连接信息。
+
+运行测试脚本：
+
+```bash
+node test-connection.js
+```
+
+执行后，脚本将运行 `main` 函数中的所有操作，依次演示数据库连接、表创建、数据插入、更新和查询等功能。
+
+## 最佳实践
+
+1. 使用环境变量管理数据库连接信息，避免硬编码
+2. 确保所有数据库操作都包含适当的错误处理机制
+3. 及时关闭不再使用的数据库连接
+4. 使用参数化查询防止 SQL 注入攻击
+5. 在生产环境中建议使用连接池来提升性能
+
+## 常见问题排查
+
+如果遇到连接问题，请检查以下几点：
+
+1. 确认 `.env` 文件中的数据库连接信息是否正确
+2. 验证 PostgreSQL 数据库服务是否正常运行且可访问
+3. 检查 Devbox 环境的网络设置是否有限制
+4. 确保已正确安装 `pg` 包
+
+更多关于 Node.js 操作 PostgreSQL 的详细信息，请参考 [node-postgres 官方文档](https://node-postgres.com/)。

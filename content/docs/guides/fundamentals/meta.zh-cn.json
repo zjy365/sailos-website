@@ -1,0 +1,5 @@
+{
+    "title": "基础概念",
+    "pages": ["create-a-project", "develop", "entrypoint-sh", "release", "deploy", "template-market"],
+    "defaultOpen": true
+}

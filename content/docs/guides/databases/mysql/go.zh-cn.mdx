@@ -1,0 +1,251 @@
+---
+title: Go
+description: 在 Sealos Devbox 中使用 Go 语言连接 MySQL 数据库的完整指南
+---
+
+本教程将指导您如何在 Sealos Devbox 项目中使用 Go 语言连接和操作 MySQL 数据库。
+
+## 准备工作
+
+- [已配置 Go 开发环境的 Sealos Devbox 项目](/docs/guides/fundamentals/create-a-project)
+- [在 Sealos 数据库应用中创建的 MySQL 数据库实例](./)
+
+## 安装依赖
+
+在 Cursor 终端中执行以下命令安装所需的依赖包：
+
+```bash
+go get github.com/go-sql-driver/mysql
+go get github.com/joho/godotenv
+```
+
+这些依赖包的作用：
+
+- `github.com/go-sql-driver/mysql`：Go 语言的 MySQL 驱动程序，用于支持 database/sql 包操作 MySQL
+- `github.com/joho/godotenv`：用于加载和管理环境变量的工具包
+
+## 配置数据库连接
+
+<div className='steps [&_h4]:step'>
+
+#### 设置环境变量
+
+首先，在项目根目录下创建 `.env` 文件，添加以下数据库连接信息：
+
+```ini title=".env"
+DB_HOST=your_database_host
+DB_PORT=3306
+DB_USER=your_username
+DB_PASSWORD=your_password
+DB_NAME=your_database_name
+```
+
+请将上述配置项替换为您在 Sealos 数据库应用中获取的实际 MySQL 连接信息。
+
+#### 编写主程序
+
+创建 `main.go` 文件，实现数据库连接和基本操作：
+
+```go title="main.go"
+package main
+
+import (
+	"database/sql"
+	"fmt"
+	"log"
+	"os"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
+)
+
+// Employee struct represents the structure of our data
+type Employee struct {
+	ID       int
+	Name     string
+	Position string
+}
+
+// connectDB establishes a connection to the MySQL database
+func connectDB() (*sql.DB, error) {
+	// Load environment variables from .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	// Retrieve database connection details from environment variables
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+
+	// First, connect without specifying the database
+	dsnWithoutDB := fmt.Sprintf("%s:%s@tcp(%s:%s)/", dbUser, dbPassword, dbHost, dbPort)
+	db, err := sql.Open("mysql", dsnWithoutDB)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the database if it doesn't exist
+	_, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + dbName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Close the connection and reconnect with the database specified
+	db.Close()
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPassword, dbHost, dbPort, dbName)
+	db, err = sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the connection
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("Successfully connected to the database")
+	return db, nil
+}
+
+// createTable creates the employees table if it doesn't exist
+func createTable(db *sql.DB) error {
+	_, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS employees (
+			id INT AUTO_INCREMENT PRIMARY KEY,
+			name VARCHAR(100) NOT NULL,
+			position VARCHAR(100) NOT NULL
+		)
+	`)
+	return err
+}
+
+// insertEmployee inserts a new employee into the database
+func insertEmployee(db *sql.DB, name, position string) error {
+	_, err := db.Exec("INSERT INTO employees (name, position) VALUES (?, ?)", name, position)
+	return err
+}
+
+// getEmployees retrieves all employees from the database
+func getEmployees(db *sql.DB) ([]Employee, error) {
+	rows, err := db.Query("SELECT id, name, position FROM employees")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var employees []Employee
+	for rows.Next() {
+		var emp Employee
+		err := rows.Scan(&emp.ID, &emp.Name, &emp.Position)
+		if err != nil {
+			return nil, err
+		}
+		employees = append(employees, emp)
+	}
+	return employees, nil
+}
+
+func main() {
+	// Connect to the database
+	db, err := connectDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Ensure the database connection is closed when the function exits
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Error closing database connection: %v", err)
+		} else {
+			fmt.Println("Database connection closed successfully")
+		}
+	}()
+
+	// Create the employees table
+	err = createTable(db)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Insert sample employees
+	err = insertEmployee(db, "John Doe", "Developer")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = insertEmployee(db, "Jane Smith", "Designer")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Retrieve and display all employees
+	employees, err := getEmployees(db)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Employees:")
+	for _, emp := range employees {
+		fmt.Printf("ID: %d, Name: %s, Position: %s\n", emp.ID, emp.Name, emp.Position)
+	}
+
+	// The database connection will be closed automatically when main() exits
+	// due to the defer statement at the beginning of the function
+}
+```
+
+代码主要包含以下几个部分：
+
+1. **包导入**：导入必要的标准库和第三方包，包括数据库操作相关的包。
+
+2. **数据结构定义**：定义 `Employee` 结构体用于存储员工信息。
+
+3. **数据库连接**：`connectDB` 函数负责读取环境变量并建立数据库连接。
+
+4. **表操作**：包含创建表、插入数据和查询数据的相关函数。
+
+5. **主程序**：在 `main` 函数中展示完整的数据库操作流程。
+
+</div>
+
+## 运行程序
+
+在 Cursor 终端中执行以下命令运行程序：
+
+```bash
+go run main.go
+```
+
+程序将依次执行数据库连接、创建表、插入数据和查询数据等操作，并在控制台输出执行结果。
+
+## 最佳实践
+
+1. **安全性**
+   - 使用环境变量管理敏感信息
+   - 采用参数化查询防止 SQL 注入
+   - 及时关闭数据库连接释放资源
+
+2. **错误处理**
+   - 对所有数据库操作进行错误检查
+   - 使用 defer 确保资源正确释放
+   - 合理记录错误信息便于调试
+
+3. **性能优化**
+   - 在生产环境中使用连接池
+   - 合理设置连接超时和重试策略
+   - 避免频繁建立和断开连接
+
+## 常见问题排查
+
+如果遇到连接问题，请检查以下几点：
+
+1. 确认 `.env` 文件中的连接信息是否正确
+2. 验证 MySQL 服务是否正常运行且可访问
+3. 检查网络配置是否存在限制
+4. 确保所需依赖包已正确安装
+
+更多详细信息，请参考 [go-sql-driver/mysql 官方文档](https://github.com/go-sql-driver/mysql)。

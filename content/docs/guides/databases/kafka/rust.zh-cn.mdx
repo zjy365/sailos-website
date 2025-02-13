@@ -1,0 +1,161 @@
+---
+title: Rust
+description: 在 Sealos Devbox 中使用 Rust 连接 Kafka 的完整指南
+---
+
+本文将详细介绍如何在 Sealos Devbox 项目中使用 Rust 语言连接和操作 Kafka 消息队列服务。
+
+## 前置条件
+
+在开始之前，请确保：
+
+- [已创建并正确配置 Rust 开发环境的 Sealos Devbox 项目](/docs/guides/fundamentals/create-a-project)
+- [已通过 Sealos 数据库应用成功部署 Kafka 集群](./)
+
+## 配置开发环境
+
+在 Cursor 终端中，首先需要在 `Cargo.toml` 文件中添加以下依赖项：
+
+```toml title="Cargo.toml"
+[dependencies]
+rdkafka = "0.28"
+tokio = { version = "1.28", features = ["full"] }
+dotenv = "0.15"
+```
+
+这些依赖包的作用如下：
+
+- `rdkafka`：Rust 语言的高性能 Apache Kafka 客户端库
+- `tokio`：Rust 的异步运行时框架，提供高效的并发处理能力
+- `dotenv`：用于从配置文件加载环境变量的工具库
+
+## 实现连接配置
+
+<div className='steps [&_h4]:step'>
+
+#### 设置环境变量
+
+首先，在项目根目录下创建 `.env` 文件，添加 Kafka 连接所需的配置信息：
+
+```ini title=".env"
+KAFKA_BROKERS=your_kafka_bootstrap_servers:9092
+KAFKA_TOPIC=your_topic_name
+KAFKA_GROUP_ID=rust-consumer-group
+```
+
+请使用你在 Sealos 数据库应用中获取的实际 Kafka 连接信息替换上述配置项。
+
+#### 编写主程序代码
+
+创建 `src/main.rs` 文件，实现 Kafka 消息的生产和消费功能：
+
+```rust title="src/main.rs"
+use rdkafka::config::ClientConfig;
+use rdkafka::producer::{FutureProducer, FutureRecord};
+use rdkafka::consumer::{StreamConsumer, Consumer};
+use rdkafka::message::Message;
+use std::time::Duration;
+use dotenv::dotenv;
+use std::env;
+ 
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenv().ok();
+ 
+    let brokers = env::var("KAFKA_BROKERS").expect("KAFKA_BROKERS must be set");
+    let topic = env::var("KAFKA_TOPIC").expect("KAFKA_TOPIC must be set");
+    let group_id = env::var("KAFKA_GROUP_ID").expect("KAFKA_GROUP_ID must be set");
+ 
+    // Producer setup
+    let producer: FutureProducer = ClientConfig::new()
+        .set("group.id", &group_id)
+        .set("bootstrap.servers", &brokers)
+        .set("message.timeout.ms", "5000")
+        .create()?;
+ 
+    // Produce a message
+    let delivery_status = producer
+        .send(
+            FutureRecord::to(&topic)
+                .payload("Hello from Sailos Devbox!")
+                .key("key"),
+            Duration::from_secs(0),
+        )
+        .await;
+
+    println!("Delivery status: {:?}", delivery_status);
+
+    // Add a delay to ensure the message is processed
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
+    // Consumer setup
+    let consumer: StreamConsumer = ClientConfig::new()
+        .set("group.id", "rust-consumer-group")
+        .set("bootstrap.servers", &brokers)
+        .set("enable.partition.eof", "false")
+        .set("session.timeout.ms", "6000")
+        .set("enable.auto.commit", "true")
+        .set("auto.offset.reset", "earliest")  // Add this line
+        .create()?;
+ 
+    consumer.subscribe(&[&topic])?;
+ 
+    // Consume messages
+    println!("Waiting for messages...");
+    let mut message_count = 0;
+    let max_messages = 5;  // Set the maximum number of messages to receive
+    
+    while message_count < max_messages {
+        match tokio::time::timeout(Duration::from_secs(5), consumer.recv()).await {
+            Ok(Ok(msg)) => {
+                println!("Received message: {:?}", msg.payload_view::<str>());
+                message_count += 1;
+            }
+            Ok(Err(e)) => println!("Error while receiving message: {:?}", e),
+            Err(_) => {
+                println!("No more messages received after {} seconds. Exiting.", 5);
+                break;
+            }
+        }
+    }
+    
+    println!("Received {} messages in total.", message_count);
+ 
+    Ok(())
+}
+```
+
+上述代码实现了以下功能：
+
+1. 配置并创建 Kafka 生产者，向指定主题发送消息
+2. 配置并创建 Kafka 消费者，从指定主题读取消息
+
+</div>
+
+## 运行和测试
+
+在 Cursor 终端中执行以下命令运行程序：
+
+```bash
+cargo run
+```
+
+该命令会编译并执行 `main` 函数，展示完整的 Kafka 消息生产和消费流程。
+
+## 开发建议
+
+1. 妥善管理配置信息：将 Kafka 连接参数等配置信息统一存储在环境变量中
+2. 完善错误处理：充分利用 Rust 的 `Result` 类型进行异常处理
+3. 使用异步编程：合理使用 Tokio 提供的异步特性来提升性能
+4. 生产环境优化：在实际生产环境中，应实现更完善的消费者逻辑，包括错误处理和优雅退出机制
+
+## 常见问题排查
+
+如果遇到连接问题，请按以下步骤排查：
+
+1. 验证 `.env` 文件中的 Kafka broker 地址是否正确
+2. 确认 Kafka 集群状态是否正常，并且可以从 Devbox 环境访问
+3. 检查 Devbox 环境的网络连接和限制
+4. 确保 `Cargo.toml` 中的依赖配置准确无误
+
+更多关于 Rust 操作 Kafka 的详细信息，请参考 [rdkafka 官方文档](https://docs.rs/rdkafka)。

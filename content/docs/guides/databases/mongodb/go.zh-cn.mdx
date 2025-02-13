@@ -1,0 +1,177 @@
+---
+title: Go
+description: 在 Sealos Devbox 中使用 Go 语言连接并操作 MongoDB 数据库的完整指南
+---
+
+本教程将介绍如何在 Sealos Devbox 项目中使用 Go 语言连接和操作 MongoDB 数据库。
+
+## 准备工作
+
+- [已创建并配置好 Go 环境的 Sealos Devbox 项目](/docs/guides/fundamentals/create-a-project)
+- [已在 Sealos 数据库应用中创建的 MongoDB 实例](./)
+
+## 安装依赖包
+
+在 Cursor 终端中执行以下命令安装所需的依赖包：
+
+```bash
+go get go.mongodb.org/mongo-driver/mongo
+go get github.com/joho/godotenv
+```
+
+这两个包的作用分别是：
+- `go.mongodb.org/mongo-driver/mongo`：MongoDB 官方 Go 驱动程序
+- `github.com/joho/godotenv`：用于加载环境变量的工具包
+
+## 配置数据库连接
+
+<div className='steps [&_h4]:step'>
+
+#### 设置环境变量
+
+首先，在项目根目录下创建 `.env` 文件，添加以下数据库连接配置：
+
+```ini title=".env"
+MONGO_URI=mongodb://your_username:your_password@your_database_host:27017
+DB_NAME=your_database_name
+```
+
+请将占位符替换为 Sealos 数据库应用中 MongoDB 实例的实际连接信息。
+
+#### 编写主程序代码
+
+创建 `main.go` 文件，添加如下代码：
+
+```go title="main.go"
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"os"
+	"time"
+
+	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+// Employee struct represents the structure of our data
+type Employee struct {
+	Name     string
+	Position string
+}
+
+func main() {
+	// Load environment variables from .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	// Get MongoDB connection URI and database name from environment variables
+	mongoURI := os.Getenv("MONGO_URI")
+	dbName := os.Getenv("DB_NAME")
+
+	// Create a new client and connect to the server
+	client, err := mongo.NewClient(options.Client().ApplyURI(mongoURI))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	err = client.Connect(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Disconnect(ctx)
+
+	// Check if the database exists, if not create it
+	err = createDatabaseIfNotExists(client, ctx, dbName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Get a handle for your collection
+	collection := client.Database(dbName).Collection("employees")
+
+	// Insert a document
+	employee := Employee{"John Doe", "Developer"}
+	insertResult, err := collection.InsertOne(ctx, employee)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Inserted a single document: ", insertResult.InsertedID)
+
+	// Find a document
+	var result Employee
+	err = collection.FindOne(ctx, bson.M{"name": "John Doe"}).Decode(&result)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Found a single document: %+v\n", result)
+}
+
+func createDatabaseIfNotExists(client *mongo.Client, ctx context.Context, dbName string) error {
+	// List all database names
+	databases, err := client.ListDatabaseNames(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+
+	// Check if our database exists
+	for _, db := range databases {
+		if db == dbName {
+			fmt.Printf("Database '%s' already exists\n", dbName)
+			return nil
+		}
+	}
+
+	// If the database doesn't exist, create it by inserting a document
+	fmt.Printf("Creating database '%s'\n", dbName)
+	err = client.Database(dbName).RunCommand(ctx, bson.D{{"create", "employees"}}).Err()
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Database '%s' created successfully\n", dbName)
+	return nil
+}
+```
+
+上述代码演示了 MongoDB 的基本操作，包括：连接数据库、自动创建数据库 (如果不存在)、插入文档和查询文档。所有的数据库配置信息都通过环境变量进行管理。
+
+</div>
+
+## 运行程序
+
+在 Cursor 终端中执行以下命令来运行程序：
+
+```bash
+go run main.go
+```
+
+程序将执行一系列操作，包括连接数据库、创建数据库 (如果需要) 以及进行基本的数据操作。
+
+## 最佳实践
+
+1. 始终使用环境变量管理数据库连接信息和其他敏感配置。
+2. 确保代码中包含完善的错误处理机制。
+3. 对于需要超时控制的操作，使用 Context 机制进行管理。
+4. 及时释放数据库连接等资源。
+5. 根据实际查询需求，为常用字段创建合适的索引以提升性能。
+
+## 常见问题排查
+
+如果遇到连接问题，请按以下步骤进行检查：
+
+1. 验证 `.env` 文件中的 MongoDB 连接信息是否正确。
+2. 确认 MongoDB 数据库服务是否正常运行且可以访问。
+3. 检查 Devbox 环境的网络连接状态。
+4. 确保所有依赖包都已正确安装。
+
+想要深入了解 Go 语言操作 MongoDB 的更多细节，请参考 [MongoDB Go 驱动程序官方文档](https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo)。

@@ -1,0 +1,201 @@
+---
+title: Go
+description: 在 Sealos Devbox 中使用 Go 连接并操作 Milvus 集群的完整指南
+---
+
+本指南将详细介绍如何在 Sealos Devbox 项目中使用 Go 语言连接和操作 Milvus 集群。
+
+## 准备工作
+
+- [已创建并正确配置 Go 开发环境的 Sealos Devbox 项目](/docs/guides/fundamentals/create-a-project)
+- [已通过 Sealos 数据库应用成功部署 Milvus 集群](./)
+
+## 安装依赖包
+
+## 安装依赖包
+
+在 Cursor 终端中执行以下命令安装所需的依赖包：
+
+```bash
+go get github.com/milvus-io/milvus-sdk-go/v2
+go get github.com/joho/godotenv
+```
+
+这将安装 Milvus Go SDK 和用于加载环境变量的 godotenv 包。
+
+## 连接设置
+
+<div className='steps [&_h4]:step'>
+
+#### 配置环境变量
+
+在项目根目录创建 `.env` 文件，添加以下配置信息：
+
+```ini title=".env"
+MILVUS_ADDR=your_milvus_host:19530
+COLLECTION_NAME=your_collection_name
+DIMENSION=128
+ID_COLUMN=id
+EMBEDDING_COLUMN=embedding
+```
+
+请将上述配置项替换为您实际的 Milvus 连接信息和所需参数。
+
+#### 编写示例代码
+
+创建 `main.go` 文件，实现以下功能：
+
+```go title="main.go"
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+	"strconv"
+	"time"
+
+	"github.com/joho/godotenv"
+	"github.com/milvus-io/milvus-sdk-go/v2/client"
+	"github.com/milvus-io/milvus-sdk-go/v2/entity"
+)
+
+func main() {
+	// Load environment variables from .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	// Get configuration from environment variables
+	milvusAddr := os.Getenv("MILVUS_ADDR")
+	collectionName := os.Getenv("COLLECTION_NAME")
+	dimStr := os.Getenv("DIMENSION")
+	idCol := os.Getenv("ID_COLUMN")
+	embeddingCol := os.Getenv("EMBEDDING_COLUMN")
+
+	// Convert dimension to int64
+	dim, err := strconv.ParseInt(dimStr, 10, 64)
+	if err != nil {
+		log.Fatalf("Failed to parse DIMENSION: %v", err)
+	}
+
+	// Setup context for client creation, use 10 seconds here
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Create a new Milvus client
+	c, err := client.NewClient(ctx, client.Config{
+		Address: milvusAddr,
+	})
+	if err != nil {
+		log.Fatal("failed to connect to milvus:", err.Error())
+	}
+
+	// Check if the collection exists
+	collExists, err := c.HasCollection(ctx, collectionName)
+	if err != nil {
+		log.Fatal("failed to check collection exists:", err.Error())
+	}
+	if collExists {
+		// Drop the old collection if it exists
+		_ = c.DropCollection(ctx, collectionName)
+	}
+
+	// Define collection schema
+	schema := entity.NewSchema().WithName(collectionName).WithDescription("this is the basic example collection").
+		WithField(entity.NewField().WithName(idCol).WithDataType(entity.FieldTypeInt64).WithIsPrimaryKey(true).WithIsAutoID(false)).
+		WithField(entity.NewField().WithName(embeddingCol).WithDataType(entity.FieldTypeFloatVector).WithDim(dim))
+
+	// Create the collection
+	err = c.CreateCollection(ctx, schema, entity.DefaultShardNumber)
+	if err != nil {
+		log.Fatal("failed to create collection:", err.Error())
+	}
+
+	// List all collections
+	collections, err := c.ListCollections(ctx)
+	if err != nil {
+		log.Fatal("failed to list collections:", err.Error())
+	}
+	for _, collection := range collections {
+		log.Printf("Collection id: %d, name: %s\n", collection.ID, collection.Name)
+	}
+
+	// Show collection partitions
+	partitions, err := c.ShowPartitions(ctx, collectionName)
+	if err != nil {
+		log.Fatal("failed to show partitions:", err.Error())
+	}
+	for _, partition := range partitions {
+		log.Printf("partition id: %d, name: %s\n", partition.ID, partition.Name)
+	}
+
+	// Create a new partition
+	partitionName := "new_partition"
+	err = c.CreatePartition(ctx, collectionName, partitionName)
+	if err != nil {
+		log.Fatal("failed to create partition:", err.Error())
+	}
+
+	log.Println("After create partition")
+	// Show collection partitions again to check creation
+	partitions, err = c.ShowPartitions(ctx, collectionName)
+	if err != nil {
+		log.Fatal("failed to show partitions:", err.Error())
+	}
+	for _, partition := range partitions {
+		log.Printf("partition id: %d, name: %s\n", partition.ID, partition.Name)
+	}
+
+	// Clean up by dropping the collection
+	_ = c.DropCollection(ctx, collectionName)
+	c.Close()
+}
+```
+
+示例代码演示了 Milvus 的基本操作，包括：连接数据库、创建和查看集合、管理分区，以及资源清理等功能。
+
+</div>
+
+## 运行程序
+
+在 Cursor 终端中执行以下命令运行示例程序：
+
+```bash
+go run main.go
+```
+
+程序将执行上述示例代码中的各项操作，并在控制台输出相关信息。
+
+## 最佳实践
+
+1. 将 Milvus 的连接信息和配置保存在运行环境变量中。
+2. 务必做好错误处理和检查机制。
+3. 为操作设置超时上下文，避免网络问题导致程序卡死。
+4. 操作结束后要及时关闭 Milvus 客户端连接。
+5. 及时清理不再使用的资源 (比如删除测试用的集合)。
+
+3. 性能优化
+   - 设置合适的操作超时时间
+   - 及时释放不再使用的资源
+   - 在完成操作后关闭客户端连接
+
+## 常见问题排查
+
+如果遇到连接或操作问题，请检查：
+
+1. 环境配置
+   - `.env` 文件中的连接参数是否正确
+   - Milvus 服务是否正常运行且可访问
+
+2. 开发环境
+   - 确认所需依赖包已正确安装
+   - 检查 Devbox 环境的网络访问权限
+
+3. 代码问题
+   - 验证 API 调用参数是否正确
+   - 检查错误处理逻辑是否完善
+
+更多详细信息，请参阅 [Milvus Go SDK 官方文档](https://github.com/milvus-io/milvus-sdk-go)。

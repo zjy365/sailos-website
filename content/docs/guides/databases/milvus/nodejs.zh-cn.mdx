@@ -1,0 +1,236 @@
+---
+title: Node.js
+description: 在 Sealos Devbox 中使用 Node.js 连接 Milvus 数据库的完整指南
+---
+
+本指南将详细介绍如何在 Sealos Devbox 项目中使用 Node.js 连接和操作 Milvus 数据库。
+
+## 准备工作
+
+- [已创建并正确配置 Node.js 开发环境的 Sealos Devbox 项目](/docs/guides/fundamentals/create-a-project)
+- [已通过 Sealos 数据库应用成功部署 Milvus 集群](./)
+
+## 安装依赖包
+
+在 Cursor 终端中执行以下命令安装必需的依赖包：
+
+```bash
+npm install @zilliz/milvus2-sdk-node dotenv
+```
+
+该命令将安装：
+
+- `@zilliz/milvus2-sdk-node`：Milvus 官方的 Node.js SDK
+- `dotenv`：用于从 `.env` 文件加载环境变量的轻量级工具
+
+## 连接配置
+
+<div className='steps [&_h4]:step'>
+
+#### 设置环境变量
+
+首先，在项目根目录创建 `.env` 文件，添加 Milvus 连接所需的配置信息：
+
+```ini title=".env"
+MILVUS_HOST=your_milvus_host
+MILVUS_PORT=19530
+COLLECTION_NAME=test_collection
+DIMENSION=128
+```
+
+请使用 Sealos 数据库应用中的实际 Milvus 连接信息替换相应的配置值。
+
+#### 创建数据库连接文件
+
+新建 `milvusClient.js` 文件，用于配置数据库连接：
+
+```javascript title="milvusClient.js"
+const { MilvusClient } = require('@zilliz/milvus2-sdk-node');
+require('dotenv').config();
+
+const client = new MilvusClient({
+  address: `${process.env.MILVUS_HOST}:${process.env.MILVUS_PORT}`,
+});
+
+module.exports = client;
+```
+
+#### 实现数据库操作
+
+创建 `milvusOperations.js` 文件，实现数据库的基本操作功能：
+
+```javascript title="milvusOperations.js"
+const client = require('./milvusClient');
+require('dotenv').config();
+
+async function createCollection() {
+  try {
+    const collectionName = process.env.COLLECTION_NAME;
+    const dimension = parseInt(process.env.DIMENSION);
+
+    // Define collection schema
+    const collectionSchema = {
+      collection_name: collectionName,
+      fields: [
+        {
+          name: 'id',
+          data_type: 'Int64',
+          is_primary_key: true,
+          auto_id: true
+        },
+        {
+          name: 'vector',
+          data_type: 'FloatVector',
+          dim: dimension
+        },
+        {
+          name: 'metadata',
+          data_type: 'VarChar',
+          max_length: 255
+        }
+      ]
+    };
+
+    // Create collection
+    await client.createCollection(collectionSchema);
+    console.log(`Collection ${collectionName} created successfully`);
+
+    // Create index
+    const indexParams = {
+      collection_name: collectionName,
+      field_name: 'vector',
+      extra_params: {
+        index_type: 'IVF_FLAT',
+        metric_type: 'L2',
+        params: JSON.stringify({ nlist: 1024 })
+      }
+    };
+    await client.createIndex(indexParams);
+    console.log('Index created successfully');
+  } catch (error) {
+    console.error('Error creating collection:', error);
+    throw error;
+  }
+}
+
+async function insertData(vectors, metadata) {
+  try {
+    const collectionName = process.env.COLLECTION_NAME;
+    
+    const data = {
+      collection_name: collectionName,
+      fields_data: vectors.map((vector, index) => ({
+        id: [],
+        vector,
+        metadata: metadata[index]
+      }))
+    };
+
+    const result = await client.insert(data);
+    console.log('Data inserted successfully:', result);
+    return result;
+  } catch (error) {
+    console.error('Error inserting data:', error);
+    throw error;
+  }
+}
+
+async function search(queryVector, topK = 5) {
+  try {
+    const collectionName = process.env.COLLECTION_NAME;
+
+    // Load collection
+    await client.loadCollection({
+      collection_name: collectionName
+    });
+
+    const searchParams = {
+      collection_name: collectionName,
+      vector: queryVector,
+      output_fields: ['metadata'],
+      limit: topK,
+      params: { nprobe: 10 }
+    };
+
+    const result = await client.search(searchParams);
+    console.log('Search results:', result);
+    return result;
+  } catch (error) {
+    console.error('Error searching:', error);
+    throw error;
+  }
+}
+
+module.exports = {
+  createCollection,
+  insertData,
+  search
+};
+```
+
+#### 编写主程序
+
+最后，创建 `main.js` 文件来演示所有操作：
+
+```javascript title="main.js"
+const { createCollection, insertData, search } = require('./milvusOperations');
+
+async function main() {
+  try {
+    // Create collection
+    await createCollection();
+
+    // Generate sample vectors and metadata
+    const sampleVectors = [
+      new Array(128).fill(0).map(() => Math.random()),
+      new Array(128).fill(0).map(() => Math.random())
+    ];
+    const sampleMetadata = ['Sample 1', 'Sample 2'];
+
+    // Insert data
+    await insertData(sampleVectors, sampleMetadata);
+
+    // Perform search
+    const queryVector = new Array(128).fill(0).map(() => Math.random());
+    await search(queryVector, 2);
+
+  } catch (error) {
+    console.error('An error occurred:', error);
+  }
+}
+
+main();
+```
+
+</div>
+
+## 运行程序
+
+在 Cursor 终端中执行以下命令运行示例程序：
+
+```bash
+node main.js
+```
+
+该命令将执行 `main` 函数中的所有操作，包括创建集合、插入数据和向量搜索。
+
+## 最佳实践
+
+1. 妥善保管 Milvus 连接信息，建议使用环境变量存储
+2. 为提高搜索性能，建议创建合适的索引
+3. 执行搜索操作前，确保已加载目标集合
+4. 实现完善的错误处理机制
+5. 批量插入数据时使用批处理操作
+6. 及时释放不再使用的集合，以节省系统资源
+
+## 常见问题排查
+
+如果遇到连接问题，请检查：
+
+1. `.env` 文件中的 Milvus 连接信息是否正确
+2. Milvus 数据库是否正常运行且可访问
+3. Devbox 运行环境是否存在网络限制
+4. 相关依赖包是否已正确安装
+5. 向量维度是否与集合配置匹配
+
+更多关于 Milvus Node.js SDK 的详细信息，请参阅[官方文档](https://github.com/milvus-io/milvus-sdk-node)。

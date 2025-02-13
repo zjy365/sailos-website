@@ -1,0 +1,151 @@
+---
+title: Go
+description: 在 Sealos Devbox 中使用 Go 语言连接和操作 Redis 数据库的完整指南
+---
+
+本教程将详细介绍如何在 Sealos Devbox 开发环境中使用 Go 语言连接并操作 Redis 数据库。
+
+## 准备工作
+
+在开始之前，请确保您已经：
+
+- [创建并配置好 Go 开发环境的 Sealos Devbox 项目](/docs/guides/fundamentals/create-a-project)
+- [在 Sealos 数据库应用中创建了 Redis 数据库实例](./)
+
+## 安装依赖包
+
+首先，在 Cursor 终端中运行以下命令安装必需的依赖包：
+
+```bash
+go get github.com/go-redis/redis
+go get github.com/joho/godotenv
+```
+
+这些依赖包的作用：
+- `github.com/go-redis/redis`：功能完整的 Go 语言 Redis 客户端
+- `github.com/joho/godotenv`：用于加载和管理环境变量的工具包
+
+## 配置数据库连接
+
+<div className='steps [&_h4]:step'>
+
+#### 设置环境变量
+
+首先，在项目根目录创建 `.env` 文件，配置 Redis 连接信息：
+
+```ini title=".env"
+REDIS_HOST=your_redis_host
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+```
+
+请将上述配置项替换为您在 Sealos 数据库应用中获取的实际 Redis 连接参数。
+
+#### 创建主程序
+
+创建 `main.go` 文件，实现 Redis 连接和基本操作：
+
+```go title="main.go"
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/go-redis/redis"
+	"github.com/joho/godotenv"
+)
+
+func main() {
+	// Load environment variables from .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	// Create a new Redis client
+	client := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
+		Password: os.Getenv("REDIS_PASSWORD"),
+		DB:       0, // use default DB
+	})
+	// Test the connection
+	pong, err := client.Ping().Result()
+	if err != nil {
+		log.Fatal("Could not connect to Redis: ", err)
+	}
+	fmt.Println("Connected to Redis: ", pong)
+	// Set a key
+	err = client.Set("mykey", "Hello from Sealos Devbox!", 0).Err()
+	if err != nil {
+		log.Fatal("Could not set key: ", err)
+	}
+	// Get a key
+	val, err := client.Get("mykey").Result()
+	if err != nil {
+		log.Fatal("Could not get key: ", err)
+	}
+	fmt.Println("mykey:", val)
+
+	// Close the connection
+	err = client.Close()
+	if err != nil {
+		log.Fatal("Error closing Redis connection: ", err)
+	}
+	fmt.Println("Redis connection closed successfully")
+}
+```
+
+这段代码演示了以下基本操作：
+- 加载环境变量配置
+- 创建并测试 Redis 连接
+- 设置和获取键值对
+- 安全地关闭数据库连接
+
+</div>
+
+## 运行程序
+
+在 Cursor 终端中执行以下命令运行程序：
+
+```bash
+go run main.go
+```
+
+如果配置正确，您将看到程序执行过程中的连接测试、数据操作和关闭连接等提示信息。
+
+## 最佳实践
+
+在使用 Go 语言操作 Redis 数据库时，请遵循以下最佳实践：
+
+1. **安全性考虑**
+   - 使用环境变量管理数据库连接信息
+   - 避免在代码中硬编码敏感信息
+   - 合理设置访问权限和密码策略
+
+2. **错误处理**
+   - 对所有数据库操作进行错误检查
+   - 实现适当的日志记录机制
+   - 提供清晰的错误提示信息
+
+3. **性能优化**
+   - 合理使用连接池管理连接资源
+   - 及时关闭不再使用的连接
+   - 适当设置超时和重试策略
+
+4. **代码组织**
+   - 使用上下文 (context) 控制操作超时
+   - 将数据库操作封装为独立的函数或包
+   - 保持代码结构清晰，便于维护
+
+## 常见问题排查
+
+如果遇到问题，请按以下步骤进行排查：
+
+1. 确认 `.env` 文件中的 Redis 连接凭证是否正确
+2. 确保 Redis 数据库正在运行且可以访问
+3. 检查 Devbox 运行环境中是否存在网络限制
+4. 确认所需的软件包已正确安装。
+
+更多关于在 Go 中使用 Redis 的详细信息，请参考 [go-redis 官方文档](https://github.com/go-redis/redis)。

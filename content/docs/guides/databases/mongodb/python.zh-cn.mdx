@@ -1,0 +1,181 @@
+---
+title: Python
+description: 在 Sealos Devbox 中使用 Python 连接 MongoDB 数据库的完整指南
+---
+
+本教程将指导您如何在 Sealos Devbox 项目中使用 Python 连接和操作 MongoDB 数据库。
+
+## 准备工作
+
+- [已创建并配置好 Python 环境的 Sealos Devbox 项目](/docs/guides/fundamentals/create-a-project)
+- [已在 Sealos 数据库应用中创建 MongoDB 数据库](./)
+
+## 配置开发环境
+
+### 激活 Python 环境
+
+首先需要在 Devbox 开发环境中激活 Python 虚拟环境。在 Cursor IDE 的终端中运行以下命令：
+
+```bash
+source ./bin/activate
+```
+
+当您看到命令提示符发生变化时，说明虚拟环境已成功激活。
+
+### 安装依赖包
+
+在终端中运行以下命令安装所需的依赖包：
+
+```bash
+pip install pymongo python-dotenv
+```
+
+这将安装：
+- `pymongo`：MongoDB 官方提供的 Python 驱动程序
+- `python-dotenv`：用于从。env 文件加载环境变量的工具包
+
+## 实现数据库连接
+
+<div className='steps [&_h4]:step'>
+
+#### 配置环境变量
+
+首先，在项目根目录创建 `.env` 文件来存储数据库连接信息：
+
+```ini title=".env"
+MONGO_URI=mongodb://your_username:your_password@your_database_host:27017/your_database_name?authSource=admin
+```
+
+请将占位符替换为您从 Sealos 数据库应用获取的实际 MongoDB 连接信息。
+
+#### 创建数据库连接模块
+
+新建 `db_connection.py` 文件，实现数据库连接功能：
+
+```python title="db_connection.py"
+import os
+from dotenv import load_dotenv
+from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure
+
+# Load environment variables
+load_dotenv()
+
+def get_db_connection():
+    try:
+        client = MongoClient(os.getenv('MONGO_URI'))
+        # The ismaster command is cheap and does not require auth.
+        client.admin.command('ismaster')
+        print("Successfully connected to MongoDB")
+        return client
+    except ConnectionFailure:
+        print("Server not available")
+        return None
+
+def close_connection(client):
+    if client:
+        client.close()
+        print("MongoDB connection closed")
+```
+
+该模块提供两个核心功能：
+
+1. `get_db_connection()`：使用环境变量中的连接信息建立 MongoDB 连接。连接成功返回客户端对象，失败则返回 None。
+2. `close_connection(client)`：用于在操作完成后关闭数据库连接。
+
+#### 编写测试脚本
+
+创建 `test_mongodb.py` 文件来测试数据库连接和基本操作：
+
+```python title="test_mongodb.py"
+from db_connection import get_db_connection, close_connection
+
+def insert_document(collection, document):
+    result = collection.insert_one(document)
+    print(f"Inserted document with ID: {result.inserted_id}")
+
+def find_documents(collection, query={}):
+    documents = collection.find(query)
+    for doc in documents:
+        print(doc)
+
+def update_document(collection, query, update):
+    result = collection.update_one(query, {'$set': update})
+    print(f"Modified {result.modified_count} document(s)")
+
+def delete_document(collection, query):
+    result = collection.delete_one(query)
+    print(f"Deleted {result.deleted_count} document(s)")
+
+def main():
+    client = get_db_connection()
+    if client:
+        try:
+            db = client.get_database()
+            collection = db['test_collection']
+            
+            # Insert a document
+            insert_document(collection, {'name': 'John Doe', 'age': 30})
+            
+            # Find all documents
+            print("\nAll documents:")
+            find_documents(collection)
+            
+            # Update a document
+            update_document(collection, {'name': 'John Doe'}, {'age': 31})
+            
+            # Find the updated document
+            print("\nUpdated document:")
+            find_documents(collection, {'name': 'John Doe'})
+            
+            # Delete the document
+            delete_document(collection, {'name': 'John Doe'})
+            
+            # Verify deletion
+            print("\nAfter deletion:")
+            find_documents(collection)
+            
+        finally:
+            close_connection(client)
+
+if __name__ == "__main__":
+    main()
+```
+
+这个测试脚本演示了 MongoDB 的基本 CRUD 操作：
+
+1. 插入文档
+2. 查找文档
+3. 更新文档
+4. 删除文档
+
+</div>
+
+## 运行程序
+
+确保已激活虚拟环境后，在终端中运行测试脚本：
+
+```bash
+python test_mongodb.py
+```
+
+如果配置正确，您将看到连接成功的提示，以及文档的插入、查询、更新和删除操作的执行结果。
+
+## 开发建议
+
+1. 始终在运行 Python 脚本或安装包之前激活虚拟环境
+2. 使用环境变量管理数据库连接信息等敏感数据
+3. 及时关闭数据库连接以释放系统资源
+4. 使用 try-except 结构处理可能的异常情况
+5. 使用 PyMongo 提供的方法进行数据库操作，以确保正确处理 MongoDB 特有的数据类型
+
+## 常见问题排查
+
+如果遇到连接问题，请检查：
+
+1. 是否已使用 `source ./bin/activate` 激活虚拟环境
+2. MongoDB 数据库是否正常运行且可访问
+3. `.env` 文件中的连接信息是否正确
+4. 查看数据库应用中的 MongoDB 日志以获取详细错误信息
+
+更多关于 PyMongo 的使用说明，请参考 [PyMongo 官方文档](https://pymongo.readthedocs.io/)。

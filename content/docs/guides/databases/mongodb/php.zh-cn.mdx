@@ -1,0 +1,145 @@
+---
+title: PHP
+description: 在 Sealos Devbox 中使用 PHP 连接 MongoDB 数据库的完整指南
+---
+
+本文将指导您如何在 Sealos Devbox 项目中使用 PHP 连接和操作 MongoDB 数据库。
+
+## 准备工作
+
+在开始之前，请确保您已经：
+
+- [在 Sealos Devbox 中创建了配置 PHP 环境的新项目](/docs/guides/fundamentals/create-a-project)
+- [通过 Sealos 数据库应用创建了 MongoDB 数据库实例](./)
+
+## 环境配置
+
+### 安装 MongoDB 扩展
+
+首先在 Cursor 终端中安装 PHP 的 MongoDB 扩展：
+
+```bash
+sudo pecl install mongodb
+```
+
+### 安装依赖包
+
+在项目目录下运行以下命令安装 MongoDB PHP 驱动：
+
+```bash
+composer require mongodb/mongodb
+```
+
+## 实现数据库连接
+
+<div className='steps [&_h4]:step'>
+
+#### 配置连接参数
+
+创建一个名为 `config.php` 的配置文件，用于存储数据库连接信息：
+
+```php title="config.php"
+<?php
+return [
+    'host' => 'your_mongodb_host',
+    'port' => '27017',
+    'database' => 'your_database_name',
+    'username' => 'your_username',
+    'password' => 'your_password'
+];
+```
+
+请将上述配置项替换为您从 Sealos 桌面数据库应用中获取的实际 MongoDB 连接信息。
+
+#### 编写连接函数
+
+创建 `db_connect.php` 文件，实现数据库连接功能：
+
+```php title="db_connect.php"
+<?php
+require_once __DIR__ . '/vendor/autoload.php'; // Ensure you have the MongoDB PHP library installed
+ 
+function getMongoDBConnection() {
+    $config = include 'config.php';
+    
+    try {
+        $client = new MongoDB\Client(
+            "mongodb://{$config['username']}:{$config['password']}@{$config['host']}:{$config['port']}/{$config['database']}?authSource=admin"
+        );
+        echo "Connected successfully to MongoDB.\n";
+        return $client->selectDatabase($config['database']);
+    } catch (Exception $e) {
+        die("Connection failed: " . $e->getMessage());
+    }
+}
+```
+
+该函数会读取配置文件并建立与 MongoDB 数据库的连接。
+
+#### 编写测试脚本
+
+创建 `test_mongodb.php` 文件，用于测试数据库连接和基本操作：
+
+```php title="test_mongodb.php"
+<?php
+require_once 'db_connect.php';
+
+$db = getMongoDBConnection();
+
+// Insert a document
+$collection = $db->employees;
+$insertResult = $collection->insertOne([
+    'name' => 'John Doe',
+    'position' => 'Developer'
+]);
+echo "Inserted document with ID: " . $insertResult->getInsertedId() . "\n";
+
+// Find documents
+$cursor = $collection->find();
+echo "Employees:\n";
+foreach ($cursor as $document) {
+    echo "ID: " . $document['_id'] . ", Name: " . $document['name'] . ", Position: " . $document['position'] . "\n";
+}
+
+// Update a document
+$updateResult = $collection->updateOne(
+    ['name' => 'John Doe'],
+    ['$set' => ['position' => 'Senior Developer']]
+);
+echo "Modified " . $updateResult->getModifiedCount() . " document(s)\n";
+
+// Delete a document
+$deleteResult = $collection->deleteOne(['name' => 'John Doe']);
+echo "Deleted " . $deleteResult->getDeletedCount() . " document(s)\n";
+```
+
+</div>
+
+## 运行程序
+
+在 Cursor 终端中执行以下命令来运行测试脚本：
+
+```bash
+php test_mongodb.php
+```
+
+该脚本将演示数据库的连接、文档的增删改查等基本操作。
+
+## 最佳实践
+
+1. 建议使用环境变量或独立的配置文件来管理数据库凭据
+2. 在代码中使用 try-catch 块来妥善处理异常情况
+3. 推荐使用官方的 MongoDB PHP 驱动以获得更好的性能和功能支持
+4. 注意及时关闭数据库连接 (本示例中会自动处理)
+5. 对经常查询的字段建立合适的索引以提升查询性能
+
+## 常见问题排查
+
+如果遇到连接问题，请检查以下几点：
+
+1. 确认 `config.php` 中的数据库连接信息是否正确
+2. 验证 MongoDB 数据库服务是否正常运行且可访问
+3. 检查网络配置是否存在访问限制
+4. 确保 MongoDB PHP 扩展已正确安装
+
+更多关于 PHP 操作 MongoDB 的详细信息，请参考 [MongoDB PHP 驱动官方文档](https://docs.mongodb.com/drivers/php/)。
