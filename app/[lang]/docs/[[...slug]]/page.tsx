@@ -10,7 +10,6 @@ import {
 } from 'fumadocs-ui/page';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getGithubLastEdit } from 'fumadocs-core/server';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 export default async function Page({
@@ -29,6 +28,13 @@ export default async function Page({
       tableOfContent={{
         style: 'clerk',
         single: false,
+      }}
+      editOnGithub={{
+        owner: 'sailos-io',
+        repo: 'website',
+        sha: 'main',
+        // file path, make sure it's valid
+        path: `content/docs/${page.file.path}`,
       }}
     >
       <DocsTitle>{page.data.title}</DocsTitle>
