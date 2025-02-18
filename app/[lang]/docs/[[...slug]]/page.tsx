@@ -1,3 +1,4 @@
+import { siteConfig } from '@/config/site';
 import { source } from '@/lib/source';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { ImageZoom } from 'fumadocs-ui/components/image-zoom';
@@ -9,6 +10,7 @@ import {
 } from 'fumadocs-ui/page';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { getGithubLastEdit } from 'fumadocs-core/server';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 export default async function Page({
@@ -59,8 +61,34 @@ export function generateMetadata({
   const page = source.getPage(params.slug, params.lang);
   if (!page) notFound();
 
+  const url = `${siteConfig.url.base}/docs/${page.slugs.join('/')}`;
+
+  const isRootPage = !params.slug || params.slug.length === 0;
+  const docTitle = isRootPage ? 'Sealos Docs' : `${page.data.title} | Sealos Docs`;
+
   return {
-    title: page.data.title,
+    metadataBase: new URL(siteConfig.url.base),
+    title: {
+      absolute: docTitle
+    },
     description: page.data.description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      url,
+      title: docTitle,
+      description: page.data.description,
+      images: `${siteConfig.url.base}/images/banner.jpeg`,
+      siteName: docTitle,
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      site: siteConfig.twitterHandle,
+      title: docTitle,
+      description: page.data.description,
+      images: `${siteConfig.url.base}/images/banner.jpeg`,
+    },
   } satisfies Metadata;
 }

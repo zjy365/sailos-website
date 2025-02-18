@@ -36,9 +36,9 @@ export default function Header({ lang }: { lang: string }) {
               className="flex items-center gap-2 font-bold"
             >
               <Image
-                alt={siteConfig.name}
+                alt=""
                 src="/logo.svg"
-                className="h-7 w-7"
+                className="h-8 w-8"
                 width={28}
                 height={28}
               />
@@ -60,7 +60,7 @@ export default function Header({ lang }: { lang: string }) {
           </div>
 
           <div className="hidden items-center gap-4 text-sm font-medium lg:flex">
-            <a href="https://usw.sailos.io" target="_blank">
+            <a href="https://usw.sealos.io" target="_blank">
               <GetStartedButton />
             </a>
           </div>
@@ -94,7 +94,7 @@ export default function Header({ lang }: { lang: string }) {
                           className="inline-flex items-center"
                         >
                           <Image
-                            alt={siteConfig.name}
+                            alt=""
                             src="/logo.svg"
                             className="h-8 w-8"
                             width={32}

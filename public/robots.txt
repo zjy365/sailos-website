@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /zh/
+Disallow: /en/
+
+Host: https://mcpilasmiljo.usw.sealos.io
+
+Sitemap: https://mcpilasmiljo.usw.sealos.io/sitemap.xml

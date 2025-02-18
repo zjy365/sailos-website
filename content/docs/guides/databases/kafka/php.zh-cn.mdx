@@ -67,7 +67,7 @@ $producer = new RdKafka\Producer($conf);
 
 $topic = $producer->newTopic($config['topic']);
 
-$message = "Hello from Sailos Devbox!";
+$message = "Hello from Sealos Devbox!";
 $topic->produce(RD_KAFKA_PARTITION_UA, 0, $message);
 
 $producer->flush(10000);

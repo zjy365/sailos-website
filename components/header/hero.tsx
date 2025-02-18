@@ -55,7 +55,7 @@ export default function Hero() {
             </div>
 
             <div className="flex items-center justify-center gap-4 text-base font-medium">
-              <a href="https://usw.sailos.io" target="_blank">
+              <a href="https://usw.sealos.io" target="_blank">
                 <GetStartedButton />
               </a>
               <div className="flex cursor-pointer items-center justify-center gap-[6px] rounded-md bg-[#FAFCFF] px-4 py-2 text-custom-primary-text shadow-button hover:bg-[#F1F5FB] sm:px-5">

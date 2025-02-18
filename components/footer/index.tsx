@@ -70,7 +70,7 @@ const Footer = async () => {
             <FooterLink href="/docs/quick-start">
               Docs
             </FooterLink>
-            <FooterLink href="https://template.usw.sailos.io">
+            <FooterLink href="https://template.usw.sealos.io">
               App Store
             </FooterLink>
           </FooterLinkColumn>

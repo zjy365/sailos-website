@@ -109,7 +109,7 @@ def test_kafka_producer():
     producer = get_kafka_producer()
     if producer:
         topic = os.getenv('KAFKA_TOPIC')
-        message = "Hello from Sailos Devbox!"
+        message = "Hello from Sealos Devbox!"
         producer.send(topic, message.encode('utf-8'))
         producer.flush()
         print(f"Message sent to topic {topic}: {message}")

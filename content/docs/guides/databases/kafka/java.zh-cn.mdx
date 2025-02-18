@@ -134,7 +134,7 @@ public class KafkaProducerExample {
         Producer<String, String> producer = new KafkaProducer<>(props);
 
         String topic = props.getProperty("topic");
-        String message = "Hello from Sailos Devbox!";
+        String message = "Hello from Sealos Devbox!";
 
         ProducerRecord<String, String> record = new ProducerRecord<>(topic, message);
 

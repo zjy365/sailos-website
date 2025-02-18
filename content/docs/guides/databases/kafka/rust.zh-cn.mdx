@@ -77,7 +77,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let delivery_status = producer
         .send(
             FutureRecord::to(&topic)
-                .payload("Hello from Sailos Devbox!")
+                .payload("Hello from Sealos Devbox!")
                 .key("key"),
             Duration::from_secs(0),
         )

@@ -90,7 +90,7 @@ async function produceMessage() {
     const result = await producer.send({
       topic: process.env.KAFKA_TOPIC,
       messages: [
-        { value: 'Hello from Sailos Devbox!' },
+        { value: 'Hello from Sealos Devbox!' },
       ],
     });
     console.log('Message sent successfully', result);
