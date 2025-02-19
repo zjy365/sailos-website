@@ -46,36 +46,50 @@ import { Text, Code, Play, Database } from 'lucide-react';
 
 <br />
 
+import { NodejsIcon, GoIcon, JavaIcon, PHPIcon, PythonIcon, RustIcon } from '@/components/ui/icons';
+
 <Cards>
   <Card
+    icon={<NodejsIcon />}
     href="/docs/guides/databases/postgresql/nodejs"
     title="Node.js"
   >
+    Node.js is a runtime environment that allows you to run JavaScript code outside of a browser.
   </Card>
   <Card
+    icon={<GoIcon />}
     href="/docs/guides/databases/postgresql/go"
     title="Go"
   >
+    Go is a statically typed, compiled programming language designed at Google.
   </Card>
   <Card
+    icon={<JavaIcon />}
     href="/docs/guides/databases/postgresql/java"
     title="Java"
   >
+    Java is a high-level, class-based, object-oriented programming language that is designed to have as few implementation dependencies as possible.
   </Card>
   <Card
+    icon={<PHPIcon />}
     href="/docs/guides/databases/postgresql/php"
     title="PHP"
   >
+    PHP is a popular general-purpose scripting language that is especially suited to web development.
   </Card>
   <Card
+    icon={<PythonIcon />}
     href="/docs/guides/databases/postgresql/python"
     title="Python"
   >
+    Python is an interpreted, high-level, general-purpose programming language.
   </Card>
   <Card
+    icon={<RustIcon />}
     href="/docs/guides/databases/postgresql/rust"
     title="Rust"
   >
+    Rust is a systems programming language that runs blazingly fast, prevents segfaults, and guarantees thread safety.
   </Card>
 </Cards>
 
