@@ -48,6 +48,6 @@ export const HeaderLinks = [
   },
   {
     text: 'Contact',
-    url: '/contact',
+    url: 'mailto:contact@sealos.io',
   },
 ];

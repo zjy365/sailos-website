@@ -3,25 +3,28 @@ import { AnimateElement } from '../ui/animated-wrapper';
 
 const data = [
   {
-    title: 'Where can I deploy devbox?',
+    title: 'Guide to creating, developing, and deploying a Next.js app using Sealos DevBox',
+    url: '/docs/quick-start',
   },
   {
-    title: 'Guide to Leveraging Java for OpenAI Integration',
+    title: 'Comprehensive guide to building an AI-powered Discord bot using Sealos DevBox',
+    url: '/docs/examples/build-your-own-discord-bot',
   },
   {
-    title:
-      'Comprehensive Guide on Integrating Redis and Object Storage using Python',
+    title: 'Comprehensive Guide to connecting to PostgreSQL databases in Sealos Devbox using Node.js',
+    url: '/docs/guides/databases/postgresql/nodejs',
   },
   {
-    title: 'Comprehensive guide on integrating Golang with MySQL database',
+    title: 'Comprehensive Guide to connecting to PostgreSQL databases in Sealos Devbox using Python',
+    url: '/docs/guides/databases/postgresql/python',
   },
   {
-    title:
-      'Comprehensive Guide on Integrating Redis and Object Storage using Python',
+    title: 'Comprehensive Guide to connecting to PostgreSQL databases in Sealos Devbox using Go',
+    url: '/docs/guides/databases/postgresql/go',
   },
   {
-    title:
-      'A comprehensive guide on creating a todolist demo utilizing DevBox, NextJS, and PostgreSQL.',
+    title: 'Comprehensive Guide to connecting to PostgreSQL databases in Sealos Devbox using Java',
+    url: '/docs/guides/databases/postgresql/java',
   },
 ];
 
@@ -94,13 +97,15 @@ export default function Example() {
         </div>
         <div className="mt-16 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {data.map((item, index) => (
-            <div
-              className="flex flex-1 cursor-pointer items-center gap-3 rounded-lg bg-white/80 p-6 text-sm font-medium text-black shadow-example-card hover:text-[#005B9C] md:text-base"
-              key={index}
-            >
-              <StarIcon />
-              {item.title}
-            </div>
+            <a href={item.url} target="_blank">
+              <div
+                className="flex flex-1 cursor-pointer items-center gap-3 rounded-lg bg-white/80 p-6 text-sm font-medium text-black shadow-example-card hover:text-[#005B9C] md:text-base"
+                key={index}
+              >
+                <StarIcon />
+                {item.title}
+              </div>
+            </a>
           ))}
         </div>
 
