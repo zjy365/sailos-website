@@ -3,6 +3,6 @@ Allow: /
 Disallow: /zh/
 Disallow: /en/
 
-Host: https://mcpilasmiljo.usw.sealos.io
+Host: https://sealos.io
 
-Sitemap: https://mcpilasmiljo.usw.sealos.io/sitemap.xml
+Sitemap: https://sealos.io/sitemap.xml
