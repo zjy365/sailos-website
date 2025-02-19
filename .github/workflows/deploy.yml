@@ -32,5 +32,5 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }} #Required
           github-comment: false
           # vercel-args: '--local-config vercel.json' # Optional
-          vercel-args: '--prod'
+          vercel-args: '--prod --local-config ./vercel.json'
           working-directory: ./
