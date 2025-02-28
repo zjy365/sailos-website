@@ -5,12 +5,11 @@ import { NextFetchEvent, NextRequest, NextResponse } from 'next/server';
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith('/zh-cn') && i18n.defaultLanguage === 'en') {
-    return NextResponse.redirect(`https://sealos.run/docs/5.0.0/Intro`);
+  if (request.nextUrl.hostname === 'sealos.io' && pathname.startsWith('/zh-cn')) {
+    return NextResponse.redirect(new URL(`https://sealos.run${pathname}`));
   }
-
-  if (pathname.startsWith('/en') && i18n.defaultLanguage === 'zh-cn') {
-    return NextResponse.redirect(`https://sealos.io${pathname}`);
+  if (request.nextUrl.hostname === 'sealos.run' && pathname.startsWith('/en')) {
+    return NextResponse.redirect(new URL(`https://sealos.io${pathname}`));
   }
 
   if (pathname === '/robots.txt') {
