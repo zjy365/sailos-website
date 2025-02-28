@@ -38,16 +38,16 @@ const analyticsConfigByLanguage: Record<string, AnalyticsConfig> = {
   },
   'zh-cn': {
     baidu: {
-      trackingId: '', // Baidu Analytics ID for Chinese website
-      enabled: false
+      trackingId: 'd8e8ecf669c47dc2512d3f1417e761f9', // Baidu Analytics ID for Chinese website
+      enabled: true
     },
     google: {
       trackingId: '', // Google Analytics ID for Chinese website
       enabled: false
     },
     clarity: {
-      trackingId: '', // Clarity ID for Chinese website
-      enabled: false
+      trackingId: 'ov517w4xcf', // Clarity ID for Chinese website
+      enabled: true
     }
   }
 };
