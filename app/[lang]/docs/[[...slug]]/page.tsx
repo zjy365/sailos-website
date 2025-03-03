@@ -29,6 +29,7 @@ export default async function Page({
         style: 'clerk',
         single: false,
       }}
+      lastUpdate={page.data.lastModified ? new Date(page.data.lastModified) : undefined}
       editOnGithub={{
         owner: 'sailos-io',
         repo: 'website',
