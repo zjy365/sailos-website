@@ -31,7 +31,12 @@ export const baseOptions: BaseLayoutProps = {
 
 export const HeaderLinks = [
   {
+    text: 'DevBox',
+    url: '/devbox',
+  },
+  {
     text: 'App Store',
+    isExternal: true,
     url: 'https://template.usw.sealos.io',
   },
   {
@@ -42,10 +47,10 @@ export const HeaderLinks = [
   //   text: 'Pricing',
   //   url: '/pricing',
   // },
-  {
-    text: 'Blog',
-    url: '/blog',
-  },
+  // {
+  //   text: 'Blog',
+  //   url: '/blog',
+  // },
   {
     text: 'Contact',
     url: 'mailto:contact@sealos.io',
