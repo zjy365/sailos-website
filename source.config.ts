@@ -7,7 +7,9 @@ import {
 import { z } from 'zod';
 import { remarkInstall } from 'fumadocs-docgen';
 
-export const { docs, meta } = defineDocs();
+export const { docs, meta } = defineDocs({
+  dir: 'content/docs',
+});
 
 export const blog = defineCollections({
   dir: 'content/blog',
