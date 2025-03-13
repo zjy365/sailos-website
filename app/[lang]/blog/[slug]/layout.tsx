@@ -16,8 +16,8 @@ export default async function BlogLayout({
   children: ReactNode;
 }) {
   const page = blog.getPage([params.slug]);
-  const pageCategory = getPageCategory(page);
   if (!page) notFound();
+  const pageCategory = getPageCategory(page);
 
   return (
     <main
