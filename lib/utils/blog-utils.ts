@@ -5,15 +5,25 @@ import { blog } from '@/lib/source';
 
 export async function getCategories() {
   const contentPath = path.join(process.cwd(), 'content/blog');
-  const categories = fs
-    .readdirSync(contentPath)
-    .filter((file) => fs.statSync(path.join(contentPath, file)).isDirectory())
-    .filter((dir) => dir.startsWith('(') && dir.endsWith(')'))
-    .map((category) => {
-      return category.replace(/^\(|\)$/g, '');
-    })
-    .filter((category) => category !== 'uncategorized');
-  return categories;
+
+  try {
+    if (!fs.existsSync(contentPath)) {
+      return [];
+    }
+
+    const categories = fs
+      .readdirSync(contentPath)
+      .filter((file) => fs.statSync(path.join(contentPath, file)).isDirectory())
+      .filter((dir) => dir.startsWith('(') && dir.endsWith(')'))
+      .map((category) => {
+        return category.replace(/^\(|\)$/g, '');
+      })
+      .filter((category) => category !== 'uncategorized');
+    return categories;
+  } catch (error) {
+    console.error('Error reading blog categories:', error);
+    return [];
+  }
 }
 
 export function getPageCategory(page: Page) {
