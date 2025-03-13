@@ -29,7 +29,6 @@ export async function generateBlogMetadata(props: {
     imageUrl = blogImageApi + page.data.title;
     docTitle = `${page.data.title} | Sealos Blog`;
     description = page.data.description;
-    keywords = page.data.keywords;
   }
 
   return {
@@ -40,7 +39,7 @@ export async function generateBlogMetadata(props: {
     description: description,
     keywords: keywords,
     alternates: {
-      canonical: `${domain}/blog/${params.slug}`,
+      canonical: `${domain}/blog/${params.slug || ''}`,
     },
     openGraph: {
       url,

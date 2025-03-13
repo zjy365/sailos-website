@@ -1,12 +1,15 @@
 import { type AuthorData, blogAuthors } from '@/config/site';
 import { blog } from '@/lib/source';
-import { getBlogImage, getPageCategory } from '@/lib/utils/blog-utils';
+import { getBlogImage } from '@/lib/utils/blog-utils';
 import type { InferPageType } from 'fumadocs-core/source';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Fragment } from 'react';
+import { DocsCategory } from 'fumadocs-ui/page';
+import { source } from '@/lib/source';
+import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 
 export default async function BlogLayout({
   params,
@@ -17,7 +20,6 @@ export default async function BlogLayout({
 }) {
   const page = blog.getPage([params.slug]);
   if (!page) notFound();
-  const pageCategory = getPageCategory(page);
 
   return (
     <main
@@ -25,23 +27,9 @@ export default async function BlogLayout({
       itemType="http://schema.org/Article"
       itemScope
     >
+      Category: <DocsCategory page={page} from={source} /> \\\
       <div className="mb-10 overflow-hidden rounded-2xl bg-gradient-to-b from-primary/10 to-background ">
         <div className="relative h-[250px] w-full">
-          <div className="absolute bottom-4 right-4 z-10 flex flex-col flex-wrap items-end gap-2 sm:flex-row sm:items-center">
-            <span className="rounded-full bg-white/50 px-3 py-1 text-xs font-medium text-black backdrop-blur-sm">
-              <Link href={`./category/${encodeURIComponent(pageCategory)}`}>
-                {pageCategory.toUpperCase()}
-              </Link>
-            </span>
-            <span className="rounded-full bg-white/50 px-3 py-1 text-xs text-black backdrop-blur-sm">
-              {new Date(page.data.date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </span>
-          </div>
-
           <Image
             src={getBlogImage(encodeURI(page.data.title))}
             alt={page.data.title}
@@ -52,6 +40,22 @@ export default async function BlogLayout({
           />
         </div>
         <div className="px-8 py-6">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div></div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block rounded-full bg-primary/15 px-3 py-1 text-xs font-medium text-primary">
+                {/* {page.data.category.toUpperCase()} */}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {new Date(page.data.date).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </span>
+            </div>
+          </div>
+
           <h1
             className="mb-4 text-4xl font-bold tracking-tight text-foreground"
             itemProp="name"

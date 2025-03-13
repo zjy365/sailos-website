@@ -1,5 +1,4 @@
 import { generateBlogMetadata } from '@/lib/utils/metadata';
-import CategoryBar from '../../components/CategoryBar';
 import BlogItem from '../../components/BlogItem';
 import BlogHeader from '../../components/BlogHeader';
 import { redirect } from 'next/navigation';
@@ -7,6 +6,7 @@ import {
   getCategories,
   getSortedBlogPosts,
   formatCategoryTitle,
+  getAllTags,
 } from '@/lib/utils/blog-utils';
 
 export default async function CategoryPage({
@@ -22,8 +22,9 @@ export default async function CategoryPage({
     redirect(`../../blog/`);
   }
 
-  const allPosts = getSortedBlogPosts(category);
+  const allPosts = getSortedBlogPosts({ category: category, tags: [] });
   const posts = allPosts;
+  const tags = await getAllTags(allPosts);
 
   const categoryTitle = formatCategoryTitle(category);
 
@@ -32,9 +33,9 @@ export default async function CategoryPage({
       <BlogHeader
         title={`${categoryTitle} Articles`}
         description={`Browse all our content about ${categoryTitle.toLowerCase()}`}
+        categories={categories}
+        tags={tags}
       />
-
-      <CategoryBar categories={categories} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {posts.length > 0 ? (

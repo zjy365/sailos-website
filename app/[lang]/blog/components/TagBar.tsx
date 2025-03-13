@@ -2,42 +2,29 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
-export default function CategoryBar({
-  categories = [],
-}: {
-  categories?: string[];
-}) {
+export default function TagsBar({ tags = [] }: { tags?: string[] }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
 
-  // Initialize activeCategory from pathname directly
-  const [activeCategory, setActiveCategory] = useState(() => {
-    const pathParts = pathname.split('/');
-    const categoryIndex = pathParts.findIndex((part) => part === 'category');
-    return categoryIndex !== -1 && pathParts[categoryIndex + 1]
-      ? decodeURIComponent(pathParts[categoryIndex + 1])
-      : 'all';
+  // Parse selected tags from the URL query parameter
+  const [selectedTags, setSelectedTags] = useState<string[]>(() => {
+    // Get all tag parameters as an array
+    return searchParams.getAll('tag');
   });
 
-  // Keep active category in sync with URL changes
+  // Keep selected tags in sync with URL changes
   useEffect(() => {
-    const pathParts = pathname.split('/');
-    const categoryIndex = pathParts.findIndex((part) => part === 'category');
-
-    const categoryFromUrl =
-      categoryIndex !== -1 && pathParts[categoryIndex + 1]
-        ? decodeURIComponent(pathParts[categoryIndex + 1])
-        : 'all';
-
-    if (activeCategory !== categoryFromUrl) {
-      setActiveCategory(categoryFromUrl);
+    const tagsFromUrl = searchParams.getAll('tag');
+    if (JSON.stringify(selectedTags) !== JSON.stringify(tagsFromUrl)) {
+      setSelectedTags(tagsFromUrl);
     }
-  }, [pathname, activeCategory]);
+  }, [searchParams, selectedTags]);
 
   const checkScroll = useCallback(() => {
     if (!scrollContainerRef.current) return;
@@ -63,28 +50,34 @@ export default function CategoryBar({
     scrollContainerRef.current.scrollBy({ left: 200, behavior: 'smooth' });
   };
 
-  const handleCategoryChange = (category: string) => {
-    // Set the active category immediately before navigation
-    setActiveCategory(category);
+  const toggleTag = (tag: string) => {
+    // Create a new URLSearchParams object based on the current parameters
+    const newSearchParams = new URLSearchParams(searchParams);
 
-    const langSegment = pathname.split('/')[1]; // Extract language segment
-    const langPath =
-      langSegment && langSegment !== 'blog' ? `/${langSegment}` : '';
+    // Toggle tag selection logic
+    if (selectedTags.includes(tag)) {
+      // Remove this tag
+      newSearchParams.delete('tag', tag);
+      setSelectedTags(selectedTags.filter((t) => t !== tag));
+    } else {
+      // Add this tag
+      newSearchParams.append('tag', tag);
+      setSelectedTags([...selectedTags, tag]);
+    }
 
-    // Small delay to prevent the navigation from happening too quickly
-    // before the state update occurs
-    setTimeout(() => {
-      if (category === 'all') {
-        // Remove category from URL - go back to main blog page
-        const basePath = langPath + '/blog';
-        router.push(basePath);
-      } else {
-        // Navigate to the category page
-        const categoryPath =
-          langPath + `/blog/category/${encodeURIComponent(category)}`;
-        router.push(categoryPath);
-      }
-    }, 10);
+    // Preserve the current URL path and update only the query parameters
+    router.push(`${pathname}?${newSearchParams.toString()}`);
+  };
+
+  const clearTags = () => {
+    setSelectedTags([]);
+
+    // Create new search params without tags
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.delete('tag');
+
+    // Preserve the current URL path but remove tag parameters
+    router.push(`${pathname}?${newSearchParams.toString()}`);
   };
 
   return (
@@ -105,33 +98,34 @@ export default function CategoryBar({
         onScroll={checkScroll}
       >
         <button
-          onClick={() => handleCategoryChange('all')}
+          onClick={clearTags}
           className={`whitespace-nowrap rounded-full border px-4 py-1.5 text-sm transition-colors ${
-            activeCategory === 'all'
+            selectedTags.length === 0
               ? 'border-primary bg-primary text-primary-foreground'
               : 'border-muted bg-transparent hover:bg-accent'
           }`}
         >
-          All Categories
+          All Tags
         </button>
 
-        {Array.isArray(categories) &&
-          categories.map((category) => {
-            const categoryTitle = category
+        {Array.isArray(tags) &&
+          tags.map((tag) => {
+            const tagTitle = tag
               .split('-')
               .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
               .join(' ');
+            const isSelected = selectedTags.includes(tag);
             return (
               <button
-                key={category}
-                onClick={() => handleCategoryChange(category)}
+                key={tag}
+                onClick={() => toggleTag(tag)}
                 className={`whitespace-nowrap rounded-full border px-4 py-1.5 text-sm transition-colors ${
-                  activeCategory === category
+                  isSelected
                     ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-muted bg-transparent hover:bg-accent'
                 }`}
               >
-                {categoryTitle}
+                {tagTitle}
               </button>
             );
           })}
