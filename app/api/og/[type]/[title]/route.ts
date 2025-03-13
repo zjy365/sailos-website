@@ -18,6 +18,13 @@ export async function GET(
     const { type, title } = params;
     const decodedTitle = decodeURIComponent(title).toUpperCase();
 
+    // Get category from search params if available
+    const { searchParams } = new URL(request.url);
+    const category = searchParams.get('category');
+    const formattedCategory = category
+      ? decodeURIComponent(category).toUpperCase()
+      : undefined;
+
     // Configure content based on type
     const config = getContentConfig(type);
 
@@ -33,7 +40,14 @@ export async function GET(
     drawBackground(ctx, width, height);
 
     // Draw content based on type
-    await drawContent(ctx, config, decodedTitle, width, height);
+    await drawContent(
+      ctx,
+      config,
+      decodedTitle,
+      width,
+      height,
+      formattedCategory,
+    );
 
     // Convert canvas to buffer
     const buffer = canvas.toBuffer('image/png');
@@ -280,6 +294,7 @@ async function drawContent(
   title: string,
   width: number,
   height: number,
+  category?: string,
 ) {
   // Load logo SVG for all types
   const logoPath = join(process.cwd(), 'public', 'sealos.svg');
@@ -290,7 +305,15 @@ async function drawContent(
     await drawWebsiteContent(ctx, width, height, logo);
   } else {
     // Blog/Docs layout
-    await drawBlogDocsContent(ctx, config, title, width, height, logo);
+    await drawBlogDocsContent(
+      ctx,
+      config,
+      title,
+      width,
+      height,
+      logo,
+      category,
+    );
   }
 }
 
@@ -302,12 +325,14 @@ async function drawBlogDocsContent(
   width: number,
   height: number,
   logo: any,
+  category?: string,
 ) {
   // Draw logo in the top left corner
   const logoWidth = width * 0.1; // 10% of canvas width
   const logoHeight = (logoWidth / logo.width) * logo.height;
-  const padding = 30;
-  ctx.drawImage(logo, padding, padding, logoWidth, logoHeight);
+  const x = 80;
+  const y = 30;
+  ctx.drawImage(logo, x, y, logoWidth, logoHeight);
 
   // Calculate positions for text elements
   const centerX = width / 2;
@@ -367,6 +392,23 @@ async function drawBlogDocsContent(
     ctx.fillText(config.tagText, centerX, tagY + tagHeight / 2);
   }
 
+  // Add category above the main title if provided
+  if (category) {
+    ctx.font = 'bold 28px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#0F3460';
+
+    // Add slight shadow for better readability
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.7)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+
+    // Position category text above the main title
+    ctx.fillText(category, centerX, centerY - 30);
+  }
+    
   // Add the main title text in the center
   ctx.font = 'bold 64px Arial, sans-serif';
   ctx.textAlign = 'center';

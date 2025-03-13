@@ -26,13 +26,36 @@ export async function getCategories() {
   }
 }
 
+// Extract the blog post type with Zod parameters
+export type BlogPost = ReturnType<typeof blog.getPages>[number];
+export async function getAllTags(pages?: BlogPost[]) {
+  let posts;
+  if (pages) {
+    posts = pages;
+  } else {
+    posts = getBlogPosts();
+  }
+  const tagSet = new Set<string>();
+
+  posts.forEach((post) => {
+    if (post.data.tags && Array.isArray(post.data.tags)) {
+      post.data.tags.forEach((tag) => tagSet.add(tag.toLowerCase()));
+    }
+  });
+
+  return Array.from(tagSet);
+}
+
 export function getPageCategory(page: Page) {
   const match = page.file.dirname.match(/\((.*?)\)/); // Extracts text inside ()
   return match ? match[1] : 'uncategorized';
 }
 
-export function getBlogImage(title: string) {
-  return `/api/og/blog/${title}`;
+export function getBlogImage(title: string, category?: string) {
+  const baseUrl = `/api/og/blog/${title}`;
+  return category
+    ? `${baseUrl}?category=${encodeURIComponent(category)}`
+    : baseUrl;
 }
 
 function getBlogPosts() {
@@ -40,26 +63,51 @@ function getBlogPosts() {
   return posts;
 }
 
-export function getSortedBlogPosts(category?: string) {
+export function getSortedBlogPosts(options?: {
+  category?: string;
+  tags?: string[];
+}) {
   const posts = getBlogPosts();
 
-  const filteredPosts = category
-    ? posts.filter(
-        (post) => getPageCategory(post) === decodeURIComponent(category),
-      )
-    : posts;
+  let filteredPosts = posts;
 
+  // Filter by category if provided
+  if (options?.category) {
+    filteredPosts = filteredPosts.filter(
+      (post) => getPageCategory(post) === decodeURIComponent(options.category!),
+    );
+  }
+
+  // Filter by tags if provided
+  if (options?.tags && options.tags.length > 0) {
+    filteredPosts = filteredPosts.filter((post) => {
+      if (!post.data.tags || !Array.isArray(post.data.tags)) return false;
+
+      // Check if post has all of the selected tags
+      return options.tags!.every((tag) =>
+        post.data.tags.some(
+          (postTag) => postTag.toLowerCase() === tag.toLowerCase(),
+        ),
+      );
+    });
+  }
+
+  // Sort by date
   filteredPosts.sort(
     (a, b) =>
       new Date(b.data.date ?? b.file.name).getTime() -
       new Date(a.data.date ?? a.file.name).getTime(),
   );
+
   return filteredPosts;
 }
 
-export function formatCategoryTitle(category: string) {
-  return decodeURIComponent(category)
+export function formatTagTitle(tag: string) {
+  return decodeURIComponent(tag)
     .split(/[-\s]/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
+
+// Alias for backward compatibility
+export const formatCategoryTitle = formatTagTitle;

@@ -17,7 +17,7 @@ export default async function BlogLayout({
 }) {
   const page = blog.getPage([params.slug]);
   if (!page) notFound();
-  const pageCategory = getPageCategory(page);
+  const category = getPageCategory(page);
 
   return (
     <main
@@ -27,21 +27,6 @@ export default async function BlogLayout({
     >
       <div className="mb-10 overflow-hidden rounded-2xl bg-gradient-to-b from-primary/10 to-background ">
         <div className="relative h-[250px] w-full">
-          <div className="absolute bottom-4 right-4 z-10 flex flex-col flex-wrap items-end gap-2 sm:flex-row sm:items-center">
-            <span className="rounded-full bg-white/50 px-3 py-1 text-xs font-medium text-black backdrop-blur-sm">
-              <Link href={`./category/${encodeURIComponent(pageCategory)}`}>
-                {pageCategory.toUpperCase()}
-              </Link>
-            </span>
-            <span className="rounded-full bg-white/50 px-3 py-1 text-xs text-black backdrop-blur-sm">
-              {new Date(page.data.date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </span>
-          </div>
-
           <Image
             src={getBlogImage(encodeURI(page.data.title))}
             alt={page.data.title}
@@ -52,6 +37,21 @@ export default async function BlogLayout({
           />
         </div>
         <div className="px-8 py-6">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div></div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block rounded-full bg-primary/15 px-3 py-1 text-xs font-medium text-primary">
+                {category.toUpperCase()}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {new Date(page.data.date).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </span>
+            </div>
+          </div>
           <h1
             className="mb-4 text-4xl font-bold tracking-tight text-foreground"
             itemProp="name"
@@ -68,37 +68,53 @@ export default async function BlogLayout({
             </p>
           )}
 
-          <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4">
-            <div className="flex -space-x-2">
-              {page.data.authors.map((author, i) => (
-                <div
-                  key={i}
-                  className="z-[1] hover:z-10"
-                  style={{ zIndex: page.data.authors.length - i }}
-                >
-                  <AuthorAvatar author={blogAuthors[author]} />
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-col">
-              <div className="flex flex-wrap items-center gap-1">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex -space-x-2">
                 {page.data.authors.map((author, i) => (
-                  <Fragment key={i}>
-                    {i !== 0 && (
-                      <span className="text-muted-foreground">&</span>
-                    )}
-                    <span className="font-medium">
-                      {blogAuthors[author].name}
-                    </span>
-                  </Fragment>
+                  <div
+                    key={i}
+                    className="z-[1] hover:z-10"
+                    style={{ zIndex: page.data.authors.length - i }}
+                  >
+                    <AuthorAvatar author={blogAuthors[author]} />
+                  </div>
                 ))}
               </div>
-              {page.data.authors.length === 1 && (
-                <span className="text-sm text-muted-foreground">
-                  {blogAuthors[page.data.authors[0]].title}
-                </span>
-              )}
+              <div className="flex flex-col">
+                <div className="flex flex-wrap items-center gap-1">
+                  {page.data.authors.map((author, i) => (
+                    <Fragment key={i}>
+                      {i !== 0 && (
+                        <span className="text-muted-foreground">&</span>
+                      )}
+                      <span className="font-medium">
+                        {blogAuthors[author].name}
+                      </span>
+                    </Fragment>
+                  ))}
+                </div>
+                {page.data.authors.length === 1 && (
+                  <span className="text-sm text-muted-foreground">
+                    {blogAuthors[page.data.authors[0]].title}
+                  </span>
+                )}
+              </div>
             </div>
+
+            {/* Tags section */}
+            {/* {page.data.tags && page.data.tags.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                {page.data.tags.map((tag: string, index: number) => (
+                  <span
+                    key={index}
+                    className="inline-block rounded-full bg-secondary/70 px-3 py-1 text-xs font-medium text-secondary-foreground"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )} */}
           </div>
         </div>
       </div>
