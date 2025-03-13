@@ -32,7 +32,7 @@ export default async function CategoryPage({
     <main className="flex flex-1 flex-col pb-20">
       <BlogHeader
         title={`${categoryTitle} Articles`}
-        description={`Browse all our content about ${categoryTitle.toLowerCase()}`}
+        description={`Blog articles in the ${categoryTitle.toLowerCase()} category`}
         categories={categories}
         tags={tags}
       />

@@ -16,7 +16,12 @@ export default function BlogHeader({
 }: BlogHeaderProps) {
   return (
     <div>
-      <div className="py-16 pt-32">
+      <div className="py-12 pt-28">
+        <div className="mb-6 text-center">
+          <span className="inline-block rounded-lg bg-primary/10 px-4 py-1.5 text-lg font-medium text-primary">
+            Sealos Blog
+          </span>
+        </div>
         <h1 className="mb-8 text-center text-4xl font-bold md:text-5xl">
           {title}
         </h1>
@@ -29,7 +34,9 @@ export default function BlogHeader({
         )}
       </div>
       <CategoryBar categories={categories} />
-      <TagBar tags={tags} />
+      <div className="hidden sm:block">
+        <TagBar tags={tags} />
+      </div>
     </div>
   );
 }

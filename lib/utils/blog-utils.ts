@@ -50,8 +50,11 @@ export function getPageCategory(page: Page) {
   return match ? match[1] : 'uncategorized';
 }
 
-export function getBlogImage(title: string) {
-  return `/api/og/blog/${title}`;
+export function getBlogImage(title: string, category?: string) {
+  const baseUrl = `/api/og/blog/${title}`;
+  return category
+    ? `${baseUrl}?category=${encodeURIComponent(category)}`
+    : baseUrl;
 }
 
 function getBlogPosts() {
