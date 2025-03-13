@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { InferPageType } from 'fumadocs-core/source';
+import { Page } from 'fumadocs-core/source';
 import { blog } from '@/lib/source';
 
 export async function getCategories() {
@@ -16,7 +16,7 @@ export async function getCategories() {
   return categories;
 }
 
-export function getPageCategory(page) {
+export function getPageCategory(page: Page) {
   const match = page.file.dirname.match(/\((.*?)\)/); // Extracts text inside ()
   return match ? match[1] : 'uncategorized';
 }
