@@ -9,35 +9,51 @@ import {
   getAllTags,
 } from '@/lib/utils/blog-utils';
 import BlogContainer from '../../components/BlogContainer';
+import { languagesType } from '@/lib/i18n';
 
 export default async function CategoryPage({
   params,
 }: {
-  params: { category: string };
+  params: { category: string; lang: languagesType };
 }) {
   const categories = await getCategories();
-  const { category } = params;
+  const { category, lang } = params;
 
   const decodedCategory = decodeURIComponent(category);
   if (!categories.includes(decodedCategory)) {
     redirect(`../../blog/`);
   }
 
-  const allPosts = getSortedBlogPosts({ category: category, tags: [] });
+  const allPosts = getSortedBlogPosts({ category: category, tags: [], lang });
   const posts = allPosts;
   const tags = await getAllTags(allPosts);
 
   const categoryTitle = formatCategoryTitle(category);
 
+  const translations: Record<
+    languagesType,
+    Record<'title' | 'description', string>
+  > = {
+    en: {
+      title: `${categoryTitle} Articles`,
+      description: `Blog articles in the ${categoryTitle.toLowerCase()} category`,
+    },
+    'zh-cn': {
+      title: `${categoryTitle}`,
+      description: `${categoryTitle.toLowerCase()}分类下的博客`,
+    },
+  };
+
   return (
     <BlogContainer>
       <BlogHeader
-        title={`${categoryTitle} Articles`}
-        description={`Blog articles in the ${categoryTitle.toLowerCase()} category`}
+        title={translations[lang].title}
+        description={translations[lang].description}
+        lang={lang}
         categories={categories}
         tags={tags}
       />
-      <BlogGrid posts={posts} />
+      <BlogGrid posts={posts} lang={lang} />
     </BlogContainer>
   );
 }
