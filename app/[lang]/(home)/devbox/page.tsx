@@ -10,6 +10,7 @@ import Video from '@/components/video';
 import { generatePageMetadata } from '@/lib/utils/metadata';
 import { appDomain } from '@/config/site';
 import { languagesType } from '@/lib/i18n';
+import placeholderImage from '/public/images/video.webp';
 
 const title = {
   main: 'Ship 10x Faster with DevBox',
@@ -20,7 +21,11 @@ export const metadata = generatePageMetadata({
   title: 'DevBox' + ' | ' + title.sub,
 });
 
-export default function HomePage({ params }: { params: { lang: languagesType } }) {
+export default function HomePage({
+  params,
+}: {
+  params: { lang: languagesType };
+}) {
   return (
     <div className="h-full bg-[#EBF2FF]">
       <Header lang={params.lang} />
@@ -30,7 +35,10 @@ export default function HomePage({ params }: { params: { lang: languagesType } }
           mainTitleEmphasis={1}
           getStartedLink={`${appDomain}/?openapp=system-devbox`}
         >
-          <Video url="https://youtu.be/A9mxz0JaY2o" />
+          <Video
+            url="https://youtu.be/A9mxz0JaY2o"
+            placeholderImage={placeholderImage}
+          />
         </Hero>
         <div className="mb-[64px]  mt-[64px] h-[1px] bg-[#DDE7F7]"></div>
         <FeatureFour />
