@@ -1,7 +1,7 @@
 import { templateDomain } from '@/config/site';
 import { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import Image from 'next/image';
-import { languagesType } from '@/lib/i18n';
+import { getLanguageSlug, languagesType } from '@/lib/i18n';
 
 /**
  * Shared layout configurations
@@ -24,7 +24,7 @@ export const baseOptions: BaseLayoutProps = {
   themeSwitch: {
     enabled: false,
   },
-  githubUrl: 'https://github.com/labring/sealos'
+  githubUrl: 'https://github.com/labring/sealos',
 };
 
 // Define the basic structure of navigation links
@@ -109,7 +109,9 @@ export const navTranslations: Record<languagesType, Record<string, string>> = {
 export const getHeaderLinks = (lang: languagesType) => {
   return HeaderLinksData.map((link) => ({
     text: navTranslations[lang][link.textKey],
-    url: navTranslations[lang][link.urlKey],
+    url:
+      (link.isExternal ? '' : getLanguageSlug(lang)) +
+      navTranslations[lang][link.urlKey],
     isExternal: link.isExternal,
   }));
 };
