@@ -62,6 +62,7 @@ const FooterLinksData: Record<string, FooterCategoryType> = {
   products: {
     titleKey: 'productsTitle',
     links: [
+      { textKey: 'pricing', urlKey: 'pricingUrl', isExternal: false },
       { textKey: 'devbox', urlKey: 'devboxUrl', isExternal: false },
       { textKey: 'fastgpt', urlKey: 'fastgptUrl', isExternal: true },
     ],
@@ -105,6 +106,7 @@ export const footerTranslations: Record<
     devbox: 'DevBox',
     fastgpt: 'FastGPT',
     contactUs: 'Contact Us',
+    pricing: 'Pricing',
     case: 'Customers ',
     termsOfService: 'Terms of Service',
     privacyPolicy: 'Privacy Policy',
@@ -117,6 +119,7 @@ export const footerTranslations: Record<
     appStoreUrl: templateDomain,
     devboxUrl: '/devbox',
     fastgptUrl: 'https://tryfastgpt.ai',
+    pricingUrl: '/pricing',
     contactUsUrl: 'mailto:contact@sealos.io',
     caseUrl: '/',
     termsOfServiceUrl: '/docs/msa/terms-of-service',
@@ -137,6 +140,7 @@ export const footerTranslations: Record<
     aiproxy: 'AI Proxy',
     case: '案例',
     forum: '社区',
+    pricing: '价格',
     contactUs: '联系我们',
     termsOfService: '服务条款',
     privacyPolicy: '隐私政策',
@@ -149,6 +153,7 @@ export const footerTranslations: Record<
     devboxUrl: '/devbox',
     fastgptUrl: 'https://fastgpt.cn',
     aiproxyUrl: '/aiproxy',
+    pricingUrl: 'https://sealos.run/pricing',
     contactUsUrl:
       'https://fael3z0zfze.feishu.cn/share/base/form/shrcn5oHHTKCf3VREMKOhEy6fmf',
     caseUrl: '/customers',

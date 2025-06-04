@@ -67,6 +67,11 @@ export const HeaderLinksData: HeaderLinkType[] = [
     isExternal: false,
   },
   {
+    textKey: 'pricing',
+    urlKey: 'pricingUrl',
+    isExternal: false,
+  },
+  {
     textKey: 'contact',
     urlKey: 'contactUrl',
     isExternal: true,
@@ -82,6 +87,7 @@ export const navTranslations: Record<languagesType, Record<string, string>> = {
     docs: 'Docs',
     case: 'Customers',
     blog: 'Blog',
+    pricing: 'Pricing',
     contact: 'Contact',
     getStarted: 'Get Started',
 
@@ -91,6 +97,7 @@ export const navTranslations: Record<languagesType, Record<string, string>> = {
     docsUrl: '/docs',
     caseUrl: '/',
     blogUrl: '/blog',
+    pricingUrl: '/pricing',
     contactUrl: 'mailto:contact@sealos.io',
   },
   'zh-cn': {
@@ -100,6 +107,7 @@ export const navTranslations: Record<languagesType, Record<string, string>> = {
     docs: '文档',
     case: '客户案例',
     blog: '博客',
+    pricing: '价格',
     contact: '联系我们',
     getStarted: '免费体验 7 天',
 
@@ -109,6 +117,7 @@ export const navTranslations: Record<languagesType, Record<string, string>> = {
     docsUrl: '/docs',
     caseUrl: '/customers',
     blogUrl: '/blog',
+    pricingUrl: 'https://sealos.run/pricing',
     contactUrl:
       'https://fael3z0zfze.feishu.cn/share/base/form/shrcn5oHHTKCf3VREMKOhEy6fmf',
   },
@@ -117,15 +126,15 @@ export const navTranslations: Record<languagesType, Record<string, string>> = {
 // Generate navigation links with translated text and URLs using the language parameter
 export const getHeaderLinks = (lang: languagesType) => {
   // Filter out the 'case' (Customers) link for English pages
-  return HeaderLinksData
-    .filter(link => !(link.textKey === 'case' && lang === 'en'))
-    .map((link) => ({
-      text: navTranslations[lang][link.textKey],
-      url:
-        (link.isExternal ? '' : getLanguageSlug(lang)) +
-        navTranslations[lang][link.urlKey],
-      isExternal: link.isExternal,
-    }));
+  return HeaderLinksData.filter(
+    (link) => !(link.textKey === 'case' && lang === 'en'),
+  ).map((link) => ({
+    text: navTranslations[lang][link.textKey],
+    url:
+      (link.isExternal ? '' : getLanguageSlug(lang)) +
+      navTranslations[lang][link.urlKey],
+    isExternal: link.isExternal,
+  }));
 };
 
 // Maintain backwards compatibility with default English navigation links
