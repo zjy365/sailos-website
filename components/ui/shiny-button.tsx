@@ -5,6 +5,7 @@ import { motion, type AnimationProps } from 'framer-motion';
 
 import { cn } from '@/lib/utils';
 import { ArrowRight } from 'lucide-react';
+import { useGTM } from '@/hooks/use-gtm';
 
 const animationProps = {
   initial: { '--x': '100%', scale: 0.8 },
@@ -64,23 +65,22 @@ export const GetStartedButton = ({
   title,
   className,
   link,
+  location,
   ...props
 }: {
   title?: string;
   className?: string;
   link?: string;
+  location: string;
 }) => {
+  const { trackButton } = useGTM();
+
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    try {
-      if (typeof window !== 'undefined' && window.rybbit) {
-        window.rybbit.event('Get Started Button Clicked');
-      }
-    } catch (error) {
-      console.warn('Analytics tracking failed:', error);
-    }
+    // Track the button click
+    trackButton(title || 'Get Started', location, 'url', link || '');
 
     if (link) {
       window.location.href = link;

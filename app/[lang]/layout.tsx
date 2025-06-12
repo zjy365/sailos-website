@@ -3,6 +3,7 @@ import { RootProvider } from 'fumadocs-ui/provider';
 import type { ReactNode } from 'react';
 import { Inter } from 'next/font/google';
 import { Analytics } from '@/components/analytics';
+import { GTMBody } from '@/components/analytics/gtm-body';
 import { generatePageMetadata } from '@/lib/utils/metadata';
 import StructuredDataComponent from '@/components/structured-data';
 import { generateHomepageSchema } from '@/lib/utils/structured-data';
@@ -42,10 +43,10 @@ export default function LocaleLayout({
         <link rel="manifest" href="/favicon/site.webmanifest" />
 
         {/* <link rel="dns-prefetch" href="https://hm.baidu.com" /> */}
-        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
-        <link rel="dns-prefetch" href="https://www.clarity.ms" />
-
+        {/* <link rel="dns-prefetch" href="https://www.clarity.ms" /> */}
         {/* <link rel="preconnect" href="https://hm.baidu.com" /> */}
+
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <link rel="preconnect" href="https://www.googletagmanager.com" />
 
         {/* Structured Data for SEO */}
@@ -54,6 +55,7 @@ export default function LocaleLayout({
         <Analytics />
       </head>
       <body className="flex min-h-screen flex-col">
+        <GTMBody />
         <RootProvider
           i18n={{
             locale: params.lang,
