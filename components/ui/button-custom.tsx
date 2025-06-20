@@ -1,8 +1,9 @@
 'use client';
 
-import { useGTM } from '@/hooks/use-gtm';
+import { useButtonHandler } from '@/hooks/use-button-handler';
 import { ButtonActionType } from '@/lib/gtm';
 import { ReactNode } from 'react';
+import { ButtonLink } from './button-link';
 
 type CustomButtonProps = {
   children: ReactNode;
@@ -33,25 +34,30 @@ export function CustomButton({
   newWindow = false,
   additionalData = {},
 }: CustomButtonProps) {
-  const { trackButton } = useGTM();
+  const { handleClick } = useButtonHandler({
+    title,
+    location: location || '',
+    href,
+    actionType,
+    trackingEnabled,
+    newWindow,
+    onClick,
+    additionalData,
+  });
 
-  const handleClick = () => {
-    if (trackingEnabled && location) {
-      trackButton(title, location, actionType, href, additionalData);
-    }
-
-    if (onClick) {
-      onClick();
-    }
-
-    if (href) {
-      if (newWindow) {
-        window.open(href, '_blank', 'noopener,noreferrer');
-      } else {
-        window.location.href = href;
-      }
-    }
-  };
+  if (href && !disabled) {
+    return (
+      <ButtonLink
+        href={href}
+        title={title}
+        className={className}
+        newWindow={newWindow}
+        onClick={handleClick}
+      >
+        {children}
+      </ButtonLink>
+    );
+  }
 
   return (
     <button

@@ -7,7 +7,7 @@ import { useMotionValueEvent, useScroll } from 'framer-motion';
 import Link from 'fumadocs-core/link';
 import { ExternalLink, Menu, X } from 'lucide-react';
 import { useState } from 'react';
-import { GetStartedButton } from '../ui/shiny-button';
+import { GetStartedButton } from '../ui/button-shiny';
 import { languagesType } from '@/lib/i18n';
 import DropdownMenu from './dropdown-menu';
 
@@ -78,13 +78,11 @@ export default function Header({ lang }: { lang: languagesType }) {
           </div>
 
           <div className="hidden items-center gap-4 text-sm font-medium lg:flex">
-            <a href={appDomain} target="_blank">
-              <GetStartedButton
-                title={translations.getStarted}
-                link="https://os.sealos.io"
-                location="navbar"
-              />
-            </a>
+            <GetStartedButton
+              title={translations.getStarted}
+              link={appDomain}
+              location="navbar"
+            />
           </div>
 
           {/* phone menu */}
