@@ -1,8 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Server, Database, Cloud, Zap, Globe, Shield } from 'lucide-react';
-import DynamicIcon from '@/components/ui/dynamic-icon';
+import {
+  Server,
+  Database,
+  Cloud,
+  Zap,
+  Globe,
+  Shield,
+  LucideIcon,
+} from 'lucide-react';
 
 // Infrastructure icons that float around the background
 const infrastructureIcons = [
@@ -65,7 +72,7 @@ function FloatingIconComponent({ icon }: { icon: FloatingIcon }) {
 }
 
 interface AnimatedVisualProps {
-  centralIcon?: string;
+  centralIcon?: React.ReactNode;
 }
 
 export default function AnimatedVisual({ centralIcon }: AnimatedVisualProps) {
@@ -153,11 +160,9 @@ export default function AnimatedVisual({ centralIcon }: AnimatedVisualProps) {
           <div className="absolute inset-0 scale-110 rounded-full bg-gradient-to-br from-cyan-400/30 via-purple-400/30 to-pink-400/30 blur-lg"></div>
           <div className="absolute inset-0 scale-105 rounded-full bg-gradient-to-br from-white/20 to-transparent"></div>
           <div className="relative z-10 text-white">
-            <DynamicIcon
-              name={centralIcon || 'Gamepad2'}
-              size={80}
-              className="drop-shadow-lg"
-            />
+            {centralIcon && (
+              <div className="size-[80px] drop-shadow-lg">{centralIcon}</div>
+            )}
           </div>
         </div>
       </div>

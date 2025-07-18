@@ -1,6 +1,10 @@
 import { createMDX } from 'fumadocs-mdx/next';
+import bundleAnalyzer from '@next/bundle-analyzer';
 
 const withMDX = createMDX();
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
 
 const securityHeaders = [
   {
@@ -27,9 +31,28 @@ const config = {
   // while maintaining server-side functionality for other pages
   reactStrictMode: true,
   pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
+  // Enable SWC minification
+  swcMinify: true,
+  // Compiler optimizations
+  compiler: {
+    removeConsole:
+      process.env.NODE_ENV === 'production'
+        ? {
+            exclude: ['error', 'warn'],
+          }
+        : false,
+  },
   // Enable static generation optimization
   experimental: {
-    optimizePackageImports: ['fumadocs-ui', 'fumadocs-core'],
+    optimizePackageImports: [
+      'fumadocs-ui',
+      'fumadocs-core',
+      'lucide-react',
+      'framer-motion',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-slot',
+    ],
   },
   async headers() {
     return [
@@ -85,4 +108,4 @@ const config = {
   },
 };
 
-export default withMDX(config);
+export default withBundleAnalyzer(withMDX(config));
