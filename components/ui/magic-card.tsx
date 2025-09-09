@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect } from 'react';
-import { motion, useMotionTemplate, useMotionValue } from 'framer-motion';
+import { motion, useMotionTemplate, useMotionValue } from 'motion/react';
 
 import { cn } from '@/lib/utils';
 
@@ -9,6 +9,8 @@ export interface MagicCardProps extends React.HTMLAttributes<HTMLDivElement> {
   gradientSize?: number;
   gradientColor?: string;
   gradientOpacity?: number;
+  gradientFrom?: string;
+  gradientTo?: string;
 }
 
 export function MagicCard({
@@ -17,6 +19,8 @@ export function MagicCard({
   gradientSize = 200,
   gradientColor = '#262626',
   gradientOpacity = 0.8,
+  gradientFrom = '#9E7AFF',
+  gradientTo = '#FE8BBB',
 }: MagicCardProps) {
   const mouseX = useMotionValue(-gradientSize);
   const mouseY = useMotionValue(-gradientSize);
@@ -45,13 +49,15 @@ export function MagicCard({
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       className={cn(
-        'group relative flex size-full overflow-hidden rounded-xl border bg-neutral-100 text-black',
+        'group relative flex size-full overflow-hidden rounded-xl bg-neutral-100 text-black',
         className,
       )}
     >
-      <div className="relative z-10 size-full h-[350px]">{children}</div>
+      <div className="relative z-10 size-full rounded-[inherit]">
+        {children}
+      </div>
       <motion.div
-        className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        className="pointer-events-none absolute -inset-px rounded-[inherit] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         style={{
           background: useMotionTemplate`
             radial-gradient(${gradientSize}px circle at ${mouseX}px ${mouseY}px, ${gradientColor}, transparent 100%)

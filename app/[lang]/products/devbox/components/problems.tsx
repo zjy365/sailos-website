@@ -1,6 +1,7 @@
 import { AnimateElement } from '@/components/ui/animated-wrapper';
-import { Clock, AlertCircle, Zap, Shield } from 'lucide-react';
+import { ClockIcon, ShieldCheckIcon } from '@/components/animated-icons';
 import { languagesType } from '@/lib/i18n';
+import { AlertCircle, Zap } from 'lucide-react';
 
 const translations = {
   en: {
@@ -67,10 +68,10 @@ const translations = {
 };
 
 const problemIcons = [
-  <Clock className="h-8 w-8 text-red-500" />,
+  <ClockIcon size={32} />,
   <AlertCircle className="h-8 w-8 text-orange-500" />,
   <Zap className="h-8 w-8 text-yellow-500" />,
-  <Shield className="h-8 w-8 text-purple-500" />,
+  <ShieldCheckIcon size={32} />,
 ];
 
 interface ProblemsProps {

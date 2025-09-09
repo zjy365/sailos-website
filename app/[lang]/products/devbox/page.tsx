@@ -1,8 +1,10 @@
 import Problems from './components/problems';
-import Solutions from './components/solutions';
-import Workflow from './components/workflow';
+import Solutions from './components/solutions-v2';
+import Workflow from './components/workflow-v2';
+import MetricsVisualization from './components/metrics-visualization';
 import TechGrid from './components/techgrid';
 import FooterCta from './components/footerCta';
+import SocialProof from './components/social-proof';
 import Footer from '@/components/footer';
 import Header from '@/components/header';
 import Hero from '@/components/header/hero';
@@ -16,26 +18,28 @@ import {
   generateDevBoxSchema,
   generateBreadcrumbSchema,
 } from '@/lib/utils/structured-data';
+import USPChips from './components/usp-chips';
+import PositioningStrip from './components/positioning-strip';
 
 // Define translations for different languages
 const translations = {
   en: {
     title: {
-      main: 'Focus on Your Code, Not Configuration',
-      sub: 'Streamlined development flow so you can build, test, and ship faster.',
+      main: 'Ship 10x Faster with Cloud Development Environments',
+      sub: 'Beyond cloud IDE: code, package, and deploy in one platform.',
     },
     description:
-      'Eliminate development environment friction with ready-to-code cloud workstations. Instant setup, perfect isolation, enterprise security.',
-    watchDemo: 'Watch Demo',
+      'Standard image-based releases, one-click deploy, IDE-agnostic, 100% environment parity.',
+    watchDemo: 'Live Demo (2 min)',
   },
   'zh-cn': {
     title: {
-      main: '专注代码，无需配置',
-      sub: '简化开发流程，让您更快地构建、测试和发布。',
+      main: '使用云端开发环境，交付速度提升10倍',
+      sub: '不仅是云 IDE：在一个平台上完成编码、打包与部署。',
     },
     description:
-      '使用即开即用的云工作站消除开发环境摩擦。即时设置，完美隔离，企业级安全。',
-    watchDemo: '观看演示',
+      '标准镜像发布，一键部署，IDE 不限，环境 100% 一致。',
+    watchDemo: '在线演示 (2分钟)',
   },
 };
 
@@ -47,7 +51,7 @@ export function generateMetadata({
 }) {
   const t = translations[params.lang] || translations.en;
   return generatePageMetadata({
-    title: 'DevBox' + ' | ' + t.title.sub,
+    title: 'Sealos DevBox — ' + t.title.sub,
     description: t.description,
     pathname: '/products/devbox',
     lang: params.lang,
@@ -79,13 +83,18 @@ export default function HomePage({
       {/* Structured Data for SEO */}
       <StructuredDataComponent data={[devboxSchema, breadcrumbSchema]} />
 
-      <div className="h-full bg-[#EBF2FF]">
+      <div className="h-full min-h-screen bg-white">
         <Header lang={params.lang} />
         <main className="custom-container px-8 pt-14 md:px-[15%]">
           <Hero
             title={t.title}
-            mainTitleEmphasis={1}
+            mainTitleEmphasis={3}
             getStartedLink={`${appDomain}/?openapp=system-devbox`}
+            getStartedText={
+              params.lang === 'zh-cn'
+                ? '免费开始（无需信用卡）'
+                : 'Start Free – No Credit Card'
+            }
             lang={params.lang}
             videoCta={true}
             secondaryCta={{
@@ -93,13 +102,22 @@ export default function HomePage({
               href: '#video-section',
             }}
           >
-            <Video
-              url="https://www.youtube.com/watch?v=TrEsUMwWtDg"
-              placeholderImage={placeholderImage}
-              title="Sealos DevBox"
-              location="hero"
-            />
+            <USPChips lang={params.lang} />
+            <div id="video-section" className="mt-8">
+              <Video
+                url="https://www.youtube.com/watch?v=TrEsUMwWtDg"
+                placeholderImage={placeholderImage}
+                title="Sealos DevBox"
+                location="hero"
+              />
+            </div>
           </Hero>
+
+          {/* Positioning Strip */}
+          <PositioningStrip lang={params.lang} />
+
+          {/* Social Proof Section */}
+          <SocialProof lang={params.lang} />
 
           {/* Problem-Solution Structure */}
           <Problems lang={params.lang} />
@@ -108,11 +126,14 @@ export default function HomePage({
           {/* Development Workflow */}
           <Workflow lang={params.lang} />
 
+          {/* Metrics Visualization */}
+          <MetricsVisualization lang={params.lang} />
+
           {/* Template Deployment Section */}
           <div id="one-click-deployment" className="scroll-mt-20" />
           <TechGrid />
 
-          <FooterCta />
+          <FooterCta lang={params.lang} />
         </main>
         <div className="mt-[140px] h-[1px] bg-[#DDE7F7]"></div>
         <Footer lang={params.lang} />
