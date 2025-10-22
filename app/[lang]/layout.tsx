@@ -8,6 +8,9 @@ import { generatePageMetadata } from '@/lib/utils/metadata';
 import StructuredDataComponent from '@/components/structured-data';
 import { generateHomepageSchema } from '@/lib/utils/structured-data';
 import { DefaultSearchDialog } from '@/components/docs/Search';
+import { headers } from 'next/headers';
+import { HomepageDarkMode } from './homepage-dark-mode';
+import { isHomepage } from './utils/is-homepage';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -32,7 +35,7 @@ export async function generateStaticParams() {
   }));
 }
 
-export default function LocaleLayout({
+export default async function LocaleLayout({
   children,
   params,
 }: {
@@ -42,8 +45,16 @@ export default function LocaleLayout({
   const htmlLang = params.lang || 'en';
   const homepageSchema = generateHomepageSchema(htmlLang);
 
+  // 在服务端获取路径并判断是否是主页
+  const headersList = await headers();
+  const pathname = headersList.get('x-pathname') || '/';
+  const isHome = isHomepage(pathname);
+
+  // 构建 html className
+  const htmlClassName = isHome ? `${inter.className} dark` : inter.className;
+
   return (
-    <html lang={htmlLang} className={inter.className} suppressHydrationWarning>
+    <html lang={htmlLang} className={htmlClassName} suppressHydrationWarning>
       <head>
         {/* Favicon and App Icons */}
         <link
@@ -100,8 +111,9 @@ export default function LocaleLayout({
 
         <Analytics />
       </head>
-      <body className="flex min-h-screen flex-col overflow-x-hidden">
+      <body className="flex min-h-screen max-w-[100vw] flex-col overflow-x-hidden">
         <GTMBody />
+        <HomepageDarkMode />
         <RootProvider
           i18n={{
             locale: params.lang,

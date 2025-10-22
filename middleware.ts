@@ -5,7 +5,10 @@ import { NextFetchEvent, NextRequest, NextResponse } from 'next/server';
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
 
-  if (request.nextUrl.hostname === 'sealos.io' && pathname.startsWith('/zh-cn')) {
+  if (
+    request.nextUrl.hostname === 'sealos.io' &&
+    pathname.startsWith('/zh-cn')
+  ) {
     return NextResponse.redirect(new URL(`https://sealos.run${pathname}`));
   }
   if (request.nextUrl.hostname === 'sealos.run' && pathname.startsWith('/en')) {
@@ -18,7 +21,10 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   }
 
   // If default language is English, also redirect /customers to homepage
-  if ((pathname === '/customers' || pathname.startsWith('/customers/')) && i18n.defaultLanguage === 'en') {
+  if (
+    (pathname === '/customers' || pathname.startsWith('/customers/')) &&
+    i18n.defaultLanguage === 'en'
+  ) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
@@ -29,7 +35,15 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const i18nMiddleware = createI18nMiddleware(i18n);
 
   // @ts-ignore
-  return i18nMiddleware(request, event);
+  const response = i18nMiddleware(request, event);
+
+  // 将路径信息添加到 headers，供服务端 layout 使用
+  if (response) {
+    const resp = await response;
+    resp?.headers.set('x-pathname', pathname);
+  }
+
+  return response;
 }
 
 export const config = {
