@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useInView } from 'framer-motion';
 import { AiRuntimeCard } from '../components/caps-image/AiRuntimeCard';
 import { DBCard } from '../components/caps-image/DBCard';
 import { DeploymentCard } from '../components/caps-image/DeploymentCard';
@@ -84,10 +85,8 @@ function CardWithBeam({
       <div className="relative flex h-full flex-col overflow-hidden border border-white/10 p-6">
         {children}
 
-        {/* BorderBeam Effect - 只在悬浮时显示流光，使用 opacity 避免边框叠加 */}
-        <div
-          className={`transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}
-        >
+        {/* BorderBeam Effect - 只在悬浮时显示流光 */}
+        {isHovered && (
           <BorderBeam
             duration={8}
             size={150}
@@ -95,15 +94,21 @@ function CardWithBeam({
             colorFrom="#777777"
             colorTo="#ffffff"
           />
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
 export function CapsSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const isInView = useInView(sectionRef, { once: false, amount: 0.1 });
+
   return (
-    <section className="relative w-screen overflow-x-clip pt-28 pb-32">
+    <section
+      ref={sectionRef}
+      className="relative w-screen overflow-x-clip pt-28 pb-32"
+    >
       {/* 顶部渐变遮罩 - 灰到黑，覆盖整个屏幕宽度 */}
       <div
         className="pointer-events-none absolute top-0 left-1/2 -z-5 h-96 w-screen -translate-x-1/2"
@@ -113,32 +118,34 @@ export function CapsSection() {
         }}
       />
 
-      {/* GodRays 效果 */}
-      <GodRays
-        sources={[
-          {
-            x: -0.05,
-            y: -0.1,
-            angle: 60,
-            spread: 25,
-            count: 12,
-            color: '220, 220, 220',
-          },
-          {
-            x: 0.5,
-            y: -0.15,
-            angle: 60,
-            spread: 35,
-            count: 11,
-            color: '225, 225, 225',
-          },
-        ]}
-        speed={0.0018}
-        maxWidth={85}
-        minLength={1000}
-        maxLength={1800}
-        blur={18}
-      />
+      {/* GodRays 效果 - only render when in view */}
+      {isInView && (
+        <GodRays
+          sources={[
+            {
+              x: -0.05,
+              y: -0.1,
+              angle: 60,
+              spread: 25,
+              count: 12,
+              color: '220, 220, 220',
+            },
+            {
+              x: 0.5,
+              y: -0.15,
+              angle: 60,
+              spread: 35,
+              count: 11,
+              color: '225, 225, 225',
+            },
+          ]}
+          speed={0.0018}
+          maxWidth={85}
+          minLength={1000}
+          maxLength={1800}
+          blur={18}
+        />
+      )}
 
       <div className="container">
         <div className="flex flex-col pb-8 lg:pb-16">

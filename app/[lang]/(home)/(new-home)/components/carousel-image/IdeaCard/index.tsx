@@ -3,35 +3,59 @@ import InputCard from './assets/input-card.svg';
 import ResponseCard from './assets/response-card.svg';
 import ReportCard from './assets/report-card.svg';
 import Image from 'next/image';
-import { useAnimate } from 'framer-motion';
-import { useEffect } from 'react';
+import { useAnimate, useInView } from 'framer-motion';
+import { useEffect, memo, useRef } from 'react';
 
-export function IdeaCard() {
+interface IdeaCardProps {
+  isActive?: boolean;
+}
+
+export const IdeaCard = memo(function IdeaCard({
+  isActive = false,
+}: IdeaCardProps) {
   const [scope, animate] = useAnimate();
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: false, amount: 0.1 });
 
   useEffect(() => {
+    if (!isActive || !isInView) return;
+
     // 使用 useAnimate 实现卡片入场动画
-    animate(
-      '[data-card="report"]',
-      { opacity: [0, 1], transform: ['translateY(-80px)', 'translateY(0px)'] },
-      { duration: 0.6, delay: 0.6 },
-    );
+    const animations = [
+      animate(
+        '[data-card="report"]',
+        {
+          opacity: [0, 1],
+          transform: ['translateY(-80px)', 'translateY(0px)'],
+        },
+        { duration: 0.6, delay: 0.6 },
+      ),
+      animate(
+        '[data-card="response"]',
+        {
+          opacity: [0, 1],
+          transform: ['translateY(-80px)', 'translateY(0px)'],
+        },
+        { duration: 0.6, delay: 0.3 },
+      ),
+      animate(
+        '[data-card="input"]',
+        {
+          opacity: [0, 1],
+          transform: ['translateY(-80px)', 'translateY(0px)'],
+        },
+        { duration: 0.6, delay: 0 },
+      ),
+    ];
 
-    animate(
-      '[data-card="response"]',
-      { opacity: [0, 1], transform: ['translateY(-80px)', 'translateY(0px)'] },
-      { duration: 0.6, delay: 0.3 },
-    );
-
-    animate(
-      '[data-card="input"]',
-      { opacity: [0, 1], transform: ['translateY(-80px)', 'translateY(0px)'] },
-      { duration: 0.6, delay: 0 },
-    );
-  }, [animate]);
+    // 清理函数：停止所有动画
+    return () => {
+      animations.forEach((anim) => anim.stop());
+    };
+  }, [animate, isActive, isInView]);
 
   return (
-    <svg className="h-full w-full overflow-visible">
+    <svg ref={ref} className="h-full w-full overflow-visible">
       <foreignObject x="0" y="0" width="100%" height="100%">
         <div ref={scope} className="relative h-full w-full overflow-hidden">
           <div
@@ -59,4 +83,4 @@ export function IdeaCard() {
       </foreignObject>
     </svg>
   );
-}
+});

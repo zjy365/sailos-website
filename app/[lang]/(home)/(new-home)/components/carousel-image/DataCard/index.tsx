@@ -1,15 +1,15 @@
 'use client';
 import { DBCard } from './DBCard';
 import Image from 'next/image';
-import { useAnimate } from 'framer-motion';
-import { useEffect } from 'react';
+import { motion, useInView } from 'framer-motion';
+import { memo, useRef } from 'react';
 import KafkaIcon from '../../../assets/db-appicons/kafkaicon.svg';
 import MilvusIcon from '../../../assets/db-appicons/milvus.svg';
 import MongoIcon from '../../../assets/db-appicons/mongoicon.svg';
 import MysqlIcon from '../../../assets/db-appicons/mysqlicon.svg';
 import PgIcon from '../../../assets/db-appicons/pgicon.svg';
 import RedisIcon from '../../../assets/db-appicons/redisicon.svg';
-import ChatInputImage from '../IdeaCard/assets/chat-input.svg';
+import ChatInputImage from './assets/chat-input.svg';
 
 // 数据库配置
 const databases = [
@@ -45,126 +45,117 @@ const databases = [
   },
 ];
 
-// 为每一列复制数据以实现无限滚动
-const column1Data = [...databases, ...databases];
-const column2Data = [
-  ...databases.slice(2),
-  ...databases.slice(0, 2),
-  ...databases.slice(2),
-  ...databases.slice(0, 2),
-];
-const column3Data = [
-  ...databases.slice(1),
-  ...databases.slice(0, 1),
-  ...databases.slice(1),
-  ...databases.slice(0, 1),
-];
+interface DataCardProps {
+  isActive?: boolean;
+}
 
-export function DataCard() {
-  const [scope, animate] = useAnimate();
-
-  // 使用 useAnimate 实现动画，直接启动
-  useEffect(() => {
-    // 第一列 - 向下滚动
-    animate(
-      '[data-column="1"]',
-      { transform: ['translateY(0)', 'translateY(-400px)'] },
-      {
-        duration: 20,
-        repeat: Infinity,
-        ease: 'linear',
-        repeatType: 'loop',
-      },
-    );
-
-    // 第二列 - 向上滚动
-    animate(
-      '[data-column="2"]',
-      { transform: ['translateY(-400px)', 'translateY(0)'] },
-      {
-        duration: 20,
-        repeat: Infinity,
-        ease: 'linear',
-        repeatType: 'loop',
-      },
-    );
-
-    // 第三列 - 向下滚动
-    animate(
-      '[data-column="3"]',
-      { transform: ['translateY(0)', 'translateY(-400px)'] },
-      {
-        duration: 20,
-        repeat: Infinity,
-        ease: 'linear',
-        repeatType: 'loop',
-      },
-    );
-  }, [animate]);
+export const DataCard = memo(function DataCard({
+  isActive = false,
+}: DataCardProps = {}) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: false, amount: 0.1 });
 
   return (
     <div
-      ref={scope}
+      ref={ref}
       className="relative h-full w-full overflow-hidden"
       style={{ isolation: 'isolate' }}
     >
       {/* 三列瀑布流容器 */}
-      <div className="flex h-full gap-4 px-4 py-8">
+      <div className="flex h-full gap-4 px-4">
         {/* 第一列 - 向下滚动 */}
-        <div
-          data-column="1"
-          className="flex flex-1 flex-col gap-4 will-change-transform"
-        >
-          {column1Data.map((db, index) => (
-            <DBCard
-              key={index}
-              name={db.name}
-              version={db.version}
-              icon={db.icon}
-            />
-          ))}
+        <div className="relative flex min-w-48 flex-1 overflow-hidden">
+          <motion.div
+            className="flex w-full flex-col gap-4 will-change-transform"
+            animate={isInView ? { y: ['0%', '-50%'] } : {}}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+          >
+            {/* 渲染两批相同内容 */}
+            {[...databases, ...databases].map((db, index) => (
+              <DBCard
+                key={index}
+                name={db.name}
+                version={db.version}
+                icon={db.icon}
+              />
+            ))}
+          </motion.div>
         </div>
 
         {/* 第二列 - 向上滚动 */}
-        <div
-          data-column="2"
-          className="flex flex-1 flex-col gap-4 will-change-transform"
-        >
-          {column2Data.map((db, index) => (
-            <DBCard
-              key={index}
-              name={db.name}
-              version={db.version}
-              icon={db.icon}
-            />
-          ))}
+        <div className="relative flex min-w-48 flex-1 overflow-hidden">
+          <motion.div
+            className="flex w-full flex-col gap-4 will-change-transform"
+            animate={isInView ? { y: ['-50%', '0%'] } : {}}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+          >
+            {/* 渲染两批相同内容，起始位置不同 */}
+            {[
+              ...databases.slice(2),
+              ...databases.slice(0, 2),
+              ...databases.slice(2),
+              ...databases.slice(0, 2),
+            ].map((db, index) => (
+              <DBCard
+                key={index}
+                name={db.name}
+                version={db.version}
+                icon={db.icon}
+              />
+            ))}
+          </motion.div>
         </div>
 
         {/* 第三列 - 向下滚动 */}
-        <div
-          data-column="3"
-          className="flex flex-1 flex-col gap-4 will-change-transform"
-        >
-          {column3Data.map((db, index) => (
-            <DBCard
-              key={index}
-              name={db.name}
-              version={db.version}
-              icon={db.icon}
-            />
-          ))}
+        <div className="relative flex min-w-48 flex-1 overflow-hidden">
+          <motion.div
+            className="flex w-full flex-col gap-4 will-change-transform"
+            animate={isInView ? { y: ['0%', '-50%'] } : {}}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+          >
+            {/* 渲染两批相同内容，起始位置不同 */}
+            {[
+              ...databases.slice(1),
+              ...databases.slice(0, 1),
+              ...databases.slice(1),
+              ...databases.slice(0, 1),
+            ].map((db, index) => (
+              <DBCard
+                key={index}
+                name={db.name}
+                version={db.version}
+                icon={db.icon}
+              />
+            ))}
+          </motion.div>
         </div>
       </div>
 
-      {/* 暗角特效 - 使用 darken 混合模式 */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse at center, transparent 20%, rgba(0, 0, 0, 0.8) 100%)',
-          mixBlendMode: 'darken',
-        }}
-      />
+      {/* 暗角特效 - SVG 径向渐变叠加层 */}
+      <svg
+        className="pointer-events-none absolute inset-0 h-full w-full"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <radialGradient id="vignette-data" cx="50%" cy="50%" r="50%">
+            <stop offset="20%" stopColor="black" stopOpacity="0" />
+            <stop offset="100%" stopColor="black" stopOpacity="0.8" />
+          </radialGradient>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#vignette-data)" />
+      </svg>
 
       {/* 中间的 chat-input 图片 */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -172,4 +163,4 @@ export function DataCard() {
       </div>
     </div>
   );
-}
+});
