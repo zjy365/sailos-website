@@ -136,7 +136,11 @@ export function Header() {
       <nav className="flex w-full justify-between rounded-full bg-white/5 px-6 py-3 inset-shadow-[0_0_20px_0_rgba(255,255,255,0.10),_0_-1px_4px_0_rgba(255,255,255,0.25)] backdrop-blur-lg">
         {/* Left */}
         <div className="flex">
-          <div className="mr-4 flex items-center justify-center">
+          <div
+            className="mr-4 flex items-center justify-center"
+            aria-label="Sealos Logotype"
+            role="banner"
+          >
             <Image
               alt="Sealos Logo"
               src="/logo.svg"
@@ -164,7 +168,11 @@ export function Header() {
           </div>
 
           {/* Desktop Navigation */}
-          <NavigationMenu className="hidden lg:flex" viewport={false}>
+          <NavigationMenu
+            className="hidden lg:flex"
+            viewport={false}
+            role="navigation"
+          >
             <NavigationMenuList>
               {navigationLinks.map((link, index) => (
                 <NavigationMenuItem key={index}>
@@ -172,9 +180,9 @@ export function Header() {
                     <>
                       <NavigationMenuTrigger>{link.text}</NavigationMenuTrigger>
                       <NavigationMenuContent className="p-2 shadow-md">
-                        <ul className="w-full min-w-[12rem]">
+                        <ul className="w-full min-w-[12rem]" aria-hidden="true">
                           {link.children.map((child, childIndex) => (
-                            <li key={childIndex}>
+                            <li key={childIndex} aria-hidden="true">
                               <NavigationMenuLink asChild>
                                 <a
                                   href={child.url}
@@ -187,15 +195,17 @@ export function Header() {
                                       ? 'noopener noreferrer'
                                       : undefined
                                   }
+                                  aria-hidden="false"
                                 >
                                   {link.text === 'Products' &&
                                   productIcons[child.text] ? (
                                     <Image
                                       src={productIcons[child.text]}
-                                      alt={`${child.text} icon`}
+                                      alt=""
                                       width={16}
                                       height={16}
                                       className="rounded"
+                                      aria-hidden="true"
                                     />
                                   ) : null}
                                   <span>{child.text}</span>
@@ -235,6 +245,7 @@ export function Header() {
             asChild
             variant="ghost"
             className="hidden h-10 rounded-full lg:flex"
+            aria-label="Open Sealos GitHub page."
           >
             <a
               href={siteConfig.links.github}
@@ -257,6 +268,7 @@ export function Header() {
             style={{
               border: '1px solid #ffffff',
             }}
+            aria-label="Start using Sealos for free."
           >
             <a
               href={siteConfig.links.mainCta}
@@ -279,7 +291,7 @@ export function Header() {
             size="icon"
             className="h-10 w-10 lg:hidden"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle menu"
+            aria-label="Toggle navigation menu"
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </Button>
@@ -308,7 +320,7 @@ export function Header() {
               <div className="h-screen overflow-y-auto bg-gradient-to-br from-gray-900 to-black p-6">
                 {/* Mobile Menu Header */}
                 <div className="mb-8 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2" role="banner">
                     <Image
                       alt="Sealos Logo"
                       src="/logo.svg"
@@ -324,14 +336,14 @@ export function Header() {
                     size="icon"
                     onClick={closeMobileMenu}
                     className="text-white"
-                    aria-label="Close menu"
+                    aria-label="Close navigation menu"
                   >
                     <X size={24} />
                   </Button>
                 </div>
 
                 {/* Mobile Menu Items */}
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2" role="navigation">
                   {navigationLinks.map((link, index) => (
                     <div key={index} className="border-b border-white/10">
                       {link.children ? (
@@ -430,6 +442,7 @@ export function Header() {
                     asChild
                     variant="outline"
                     className="h-12 w-full rounded-full border-white/20 text-base text-white hover:bg-white/10"
+                    aria-label="Open Sealos GitHub page."
                   >
                     <a
                       href="https://github.com/labring/sealos"
@@ -450,6 +463,7 @@ export function Header() {
                   <Button
                     variant="landing-primary"
                     className="h-12 w-full border border-white text-base"
+                    aria-label="Start using Sealos for free."
                   >
                     <a
                       href="https://os.sealos.io/?openapp=system-brain"

@@ -83,7 +83,7 @@ const StageItem = memo(
   ({ stage, index, isActive, progress, onStageClick }: StageItemProps) => {
     const [start, end] = stage.range;
     const [scope, animate] = useAnimate();
-    const containerRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLButtonElement>(null);
     const [isAnimating, setIsAnimating] = useState(false);
     const prevProgressRef = useRef<number>(0);
     const containerWidthRef = useRef<number>(0);
@@ -161,7 +161,7 @@ const StageItem = memo(
     });
 
     return (
-      <motion.div
+      <motion.button
         ref={containerRef}
         className="relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl px-2 py-6 text-xs font-normal sm:text-base md:gap-2 md:text-xl md:font-medium"
         animate={{
@@ -174,6 +174,7 @@ const StageItem = memo(
           <motion.div
             className="absolute inset-0 overflow-hidden rounded-xl"
             initial={false}
+            aria-hidden="true"
           >
             <motion.div
               ref={scope}
@@ -186,10 +187,12 @@ const StageItem = memo(
         )}
 
         <div className="relative z-10 flex flex-col items-center gap-1 sm:flex-row sm:gap-2">
-          <div className="text-zinc-400">{stage.icon}</div>
+          <div className="text-zinc-400" aria-hidden="true">
+            {stage.icon}
+          </div>
           <span>{stage.name}</span>
         </div>
-      </motion.div>
+      </motion.button>
     );
   },
 );
