@@ -1,6 +1,11 @@
 import { createI18nMiddleware } from 'fumadocs-core/i18n';
 import { i18n } from '@/lib/i18n';
-import { NextFetchEvent, NextRequest, NextResponse } from 'next/server';
+import {
+  NextFetchEvent,
+  NextRequest,
+  NextResponse,
+  URLPattern,
+} from 'next/server';
 
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
@@ -48,6 +53,6 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|images/|icons/|favicon/|favicon.ico|logo.svg|Deploy-on-Sealos.svg|sitemap.xml|llms.txt|rss.xml).*)/',
+    '/((?!api|_next/static|_next/image|images/|icons/|favicon/|favicon.ico|logo.svg|Deploy-on-Sealos.svg|sitemap.xml|llms.txt|rss.xml|ai-faqs\..*\.json).*)/',
   ],
 };
