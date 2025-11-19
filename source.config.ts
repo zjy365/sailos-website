@@ -27,12 +27,13 @@ export const blog = defineCollections({
 
 export const aiQuickReference = defineCollections({
   dir: 'content/ai-quick-reference',
-  type: 'doc',
+  type: 'meta',
   schema: frontmatterSchema.extend({
     title: z.string(),
     description: z.string(),
     category: z.string(),
     keywords: z.array(z.string()).default([]),
+    content: z.string(),
   }),
 });
 
