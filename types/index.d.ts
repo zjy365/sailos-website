@@ -10,7 +10,6 @@ export type SiteConfig = {
   };
   twitterHandle: string;
   links: {
-    mainCta: string;
     github: string;
     twitter: string;
     discord: string;
@@ -19,4 +18,11 @@ export type SiteConfig = {
     wechat: string;
   };
   ogImage: string;
+  turnstileEnabled: boolean;
+  turnstileSitekey: string;
+  emailRequestEndpoint: string;
+  emailVerifyEndpoint: string;
+  signinSwitchRegionUrl: string;
+  oauth2GithubUrl: string;
+  oauth2GoogleUrl: string;
 };

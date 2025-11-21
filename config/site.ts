@@ -1,6 +1,6 @@
 import { SiteConfig } from '@/types';
 import { i18n } from '@/lib/i18n';
-import { getBrainUrl } from '@/lib/utils/brain';
+import { getOpenBrainParam } from '@/lib/utils/brain';
 
 export const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://sealos.io';
 
@@ -28,7 +28,6 @@ export const siteConfig: SiteConfig = {
   },
   twitterHandle: '@Sealos_io',
   links: {
-    mainCta: getBrainUrl(),
     github: 'https://github.com/labring/sealos',
     twitter: 'https://x.com/Sealos_io',
     discord: 'https://discord.gg/wdUn538zVP',
@@ -40,6 +39,13 @@ export const siteConfig: SiteConfig = {
   ogImage: `${
     process.env.NEXT_PUBLIC_APP_URL
   }/images/banner.jpeg?${new Date().getTime()}`,
+  turnstileEnabled: true,
+  turnstileSitekey: '0x4AAAAAABmIoQ_LAxlvw78V',
+  emailRequestEndpoint: 'https://usw.sealos.io/api/auth/email/sms',
+  emailVerifyEndpoint: 'https://usw.sealos.io/api/auth/email/verify',
+  signinSwitchRegionUrl: 'https://os.sealos.io/switchRegion',
+  oauth2GithubUrl: 'https://os.sealos.io/oauth?login=github',
+  oauth2GoogleUrl: 'https://os.sealos.io/oauth?login=google',
 };
 
 export type AuthorData = {
