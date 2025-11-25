@@ -1,10 +1,17 @@
+import { cn } from '@/lib/utils';
 import React from 'react';
 
-export function FramedText({ children }: { children?: React.ReactNode }) {
+export function FramedText({
+  children,
+  className,
+}: {
+  children?: React.ReactNode;
+  className: string;
+}) {
   const gradientId = React.useId();
 
   return (
-    <span className="relative inline-block overflow-visible">
+    <span className={cn('relative inline-block overflow-visible', className)}>
       <svg
         className="absolute inset-0 h-full w-full"
         xmlns="http://www.w3.org/2000/svg"
@@ -36,11 +43,12 @@ export function FramedText({ children }: { children?: React.ReactNode }) {
 
         {/* 右上角实心矩形 - 中心在边框上 */}
         <rect
-          x="calc(100% - 2px)"
+          x="100%"
           y="-2"
           width="4"
           height="4"
           fill={`url(#${gradientId})`}
+          style={{ transform: 'translateX(-2px)' }}
         />
 
         {/* 左下角实心矩形 - 中心在边框上 */}
@@ -54,11 +62,12 @@ export function FramedText({ children }: { children?: React.ReactNode }) {
 
         {/* 右下角实心矩形 - 中心在边框上 */}
         <rect
-          x="calc(100% - 2px)"
+          x="100%"
           y="calc(100% - 2px)"
           width="4"
           height="4"
           fill={`url(#${gradientId})`}
+          style={{ transform: 'translateX(-2px)' }}
         />
       </svg>
 
