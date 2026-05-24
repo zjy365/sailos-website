@@ -14,6 +14,7 @@ const heroSource = readFileSync(
   join(componentDir, 'AppDetailHero.tsx'),
   'utf8',
 );
+const pageSource = readFileSync(join(componentDir, '../page.tsx'), 'utf8');
 const appPreviewSource = readFileSync(
   join(componentDir, 'AppPreviewPanel.tsx'),
   'utf8',
@@ -78,10 +79,6 @@ test('README markdown preview tries docs README before falling back to the scree
   assert.match(readmeWindowSource, /sourcePath: pathParts\.join\('\/'\)/);
   assert.match(
     readmeWindowSource,
-    /Rendered from \{readme\.source\.sourcePath\}/,
-  );
-  assert.match(
-    readmeWindowSource,
     /const screenshot = app\.screenshots\?\.\[0\]/,
   );
   assert.match(readmeWindowSource, /alt=\{`\$\{app\.name\} screenshot`\}/);
@@ -90,6 +87,35 @@ test('README markdown preview tries docs README before falling back to the scree
     readmeWindowSource,
     /README\.md was not found in the GitHub repository/,
   );
+});
+
+test('README markdown preview prefers the readme URL stored on the app config', () => {
+  assert.match(readmeWindowSource, /buildDirectReadmeSource/);
+  assert.match(
+    readmeWindowSource,
+    /Pick<AppDetailConfig, 'readme' \| 'github' \| 'website'>/,
+  );
+  assert.match(
+    readmeWindowSource,
+    /getReadmeSource\(\{[\s\S]*readme: app\.readme,[\s\S]*github: app\.github,[\s\S]*website: app\.website,[\s\S]*\}\)/,
+  );
+  assert.match(readmeWindowSource, /export async function loadReadmeMarkdown/);
+});
+
+test('README markdown preview does not render the source metadata row', () => {
+  assert.doesNotMatch(readmeWindowSource, /Rendered from/);
+  assert.doesNotMatch(readmeWindowSource, /readmeSource\.repoLabel/);
+  assert.doesNotMatch(readmeWindowSource, /readmeSource\.repoUrl/);
+});
+
+test('README markdown is loaded before rendering the static app detail page', () => {
+  assert.doesNotMatch(readmeWindowSource, /'use client'/);
+  assert.doesNotMatch(readmeWindowSource, /useEffect/);
+  assert.doesNotMatch(readmeWindowSource, /useState/);
+  assert.doesNotMatch(readmeWindowSource, /Loading README from GitHub/);
+  assert.match(readmeWindowSource, /export async function loadReadmeMarkdown/);
+  assert.match(pageSource, /const readme = await loadReadmeMarkdown\(app\)/);
+  assert.match(pageSource, /<ReadmePreview app=\{app\} readme=\{readme\} \/>/);
 });
 
 test('README browser bar is labeled README.md', () => {
@@ -206,6 +232,14 @@ test('hero uses the Figma center-logo composition on desktop', () => {
   assert.match(heroSource, /left-\[609px\]/);
   assert.match(heroSource, /top-9/);
   assert.match(heroSource, /hidden lg:flex/);
+  assert.match(heroSource, /rounded-\[5\.235px\]/);
+  assert.match(heroSource, /border-\[0\.5px\]/);
+  assert.match(heroSource, /border-transparent/);
+  assert.match(heroSource, /heroCenterLogoBorderStyle/);
+  assert.match(heroSource, /linear-gradient\(#0A0A0A, #0A0A0A\) padding-box/);
+  assert.match(heroSource, /linear-gradient\(109\.08deg, #FFFFFF 0\.55%, rgba\(255, 255, 255, 0\) 26\.65%\) border-box/);
+  assert.match(heroSource, /linear-gradient\(285\.16deg, #FFFFFF 0%, rgba\(255, 255, 255, 0\) 8\.87%\) border-box/);
+  assert.match(heroSource, /linear-gradient\(0deg, rgba\(255, 255, 255, 0\.15\), rgba\(255, 255, 255, 0\.15\)\) border-box/);
   assert.match(heroSource, /variant="hero"/);
   assert.match(heroSource, /<div className="relative z-10 mx-auto grid/);
   assert.match(heroSource, /mb-7 flex items-center gap-5 lg:hidden/);
@@ -255,6 +289,27 @@ test('why deploy diagram does not add an outer background mask', () => {
     whyDeploySource,
     /shadow-\[inset_0_1px_0_rgba\(255,255,255,0\.04\)\]/,
   );
+});
+
+test('why deploy diagram cards use the Figma gradient border treatment', () => {
+  assert.match(whyDeploySource, /gradientBorderStyle/);
+  assert.match(whyDeploySource, /diagramCardClassName/);
+  assert.match(whyDeploySource, /diagramTopCardClassName/);
+  assert.match(whyDeploySource, /diagramResourceGridClassName/);
+  assert.match(whyDeploySource, /diagramLiveCardClassName/);
+  assert.match(whyDeploySource, /border-\[0\.5px\] border-transparent/);
+  assert.match(whyDeploySource, /linear-gradient\(#0A0A0A, #0A0A0A\) padding-box/);
+  assert.match(whyDeploySource, /linear-gradient\(109\.08deg, #FFFFFF 0\.55%, rgba\(255, 255, 255, 0\) 26\.65%\) border-box/);
+  assert.match(whyDeploySource, /linear-gradient\(285\.16deg, #FFFFFF 0%, rgba\(255, 255, 255, 0\) 8\.87%\) border-box/);
+  assert.match(whyDeploySource, /linear-gradient\(0deg, rgba\(255, 255, 255, 0\.15\), rgba\(255, 255, 255, 0\.15\)\) border-box/);
+  assert.match(whyDeploySource, /index > 0 \? 'border-l border-white\/10' : ''/);
+  assert.match(whyDeploySource, /className=\{diagramResourceGridClassName\}/);
+  assert.match(whyDeploySource, /className="flex h-10 items-center gap-3 px-4 text-sm font-semibold text-white"/);
+  assert.doesNotMatch(whyDeploySource, /resourceIcons\.map\(\(item\) =>/);
+  assert.doesNotMatch(whyDeploySource, /className=\{`\$\{diagramCardClassName\} flex min-h-\[74px\]/);
+  assert.doesNotMatch(whyDeploySource, /flex h-10 items-center gap-3 rounded-lg bg-white\/\[0\.055\]/);
+  assert.doesNotMatch(whyDeploySource, /border border-white\/10 bg-white\/\[0\.035\]/);
+  assert.doesNotMatch(whyDeploySource, /border border-white\/10 bg-white\/\[0\.04\]/);
 });
 
 test('detail sections use Figma-like vertical rhythm instead of stacked wide padding', () => {
