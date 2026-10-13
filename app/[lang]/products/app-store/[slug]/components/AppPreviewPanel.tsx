@@ -2,14 +2,19 @@ import Image from 'next/image';
 import { ArrowUpRight } from 'lucide-react';
 import { AppIcon } from '@/components/ui/app-icon';
 import type { AppDetailConfig } from './app-detail-utils';
+import { getTemplateVideoId } from './template-video';
+import TemplateVideo from './template-video-player';
 import s from './detail.module.css';
 
 export default function AppPreviewPanel({ app }: { app: AppDetailConfig }) {
   const screenshot = app.screenshots?.[0];
+  const videoId = getTemplateVideoId(app.youtube);
   return (
     <figure className={s.preview}>
-      <div className={s.previewFrame}>
-        {screenshot ? (
+      <div className={`${s.previewFrame} ${videoId ? s.videoFrame : ''}`}>
+        {videoId ? (
+          <TemplateVideo key={videoId} videoId={videoId} appName={app.name} />
+        ) : screenshot ? (
           <Image
             src={screenshot}
             alt={`${app.name} template preview`}
@@ -33,14 +38,16 @@ export default function AppPreviewPanel({ app }: { app: AppDetailConfig }) {
           </div>
         )}
       </div>
-      <figcaption>
-        <span>Template preview</span>
-        {screenshot && (
-          <a href={screenshot} target="_blank" rel="noopener noreferrer">
-            Full screenshot <ArrowUpRight size={14} />
-          </a>
-        )}
-      </figcaption>
+      {!videoId && (
+        <figcaption>
+          <span>Template preview</span>
+          {screenshot && (
+            <a href={screenshot} target="_blank" rel="noopener noreferrer">
+              Full screenshot <ArrowUpRight size={14} />
+            </a>
+          )}
+        </figcaption>
+      )}
     </figure>
   );
 }
