@@ -3,6 +3,7 @@
 import Script from 'next/script';
 import { analyticsConfig } from '@/config/analytics';
 import { useEffect } from 'react';
+import { AcquisitionObserver } from './acquisition-observer';
 
 // Clarity script for lazy loading
 const loadClarity = (trackingId: string) => {
@@ -143,6 +144,7 @@ export function Analytics() {
 
   return (
     <>
+      <AcquisitionObserver />
       {/* Google Tag Manager is now loaded via useEffect with smart lazy loading */}
 
       {/* Baidu Analytics - for zh-cn */}
