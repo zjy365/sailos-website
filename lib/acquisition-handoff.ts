@@ -7,9 +7,6 @@ export type AcquisitionSource = {
   source: string;
   medium?: string;
   campaign?: string;
-  landing_page: string;
-  referrer?: string;
-  timestamp: string;
 };
 export type AcquisitionContext = {
   version: 1;
@@ -25,7 +22,6 @@ export type AcquisitionRuntime = {
   cookie: string;
   writeCookie: (value: string) => void;
   consentUpdates: unknown[];
-  now: () => Date;
   randomId: () => string;
 };
 const VISITOR_KEY = 'sealos_acquisition_visitor_v1';
@@ -226,32 +222,27 @@ function label(value: string | null): string | undefined {
     ? safe
     : undefined;
 }
-function publicPage(value: string): string | undefined {
-  try {
-    const url = new URL(value);
-    return ['https:', 'http:'].includes(url.protocol) &&
-      !url.username &&
-      !url.password
-      ? `${url.origin}${url.pathname}`.slice(0, 250)
-      : undefined;
-  } catch {
-    return undefined;
-  }
-}
 function captureSource(runtime: AcquisitionRuntime): AcquisitionSource {
   const url = new URL(runtime.href);
-  const referrer = publicPage(runtime.referrer);
+  let referralSource: string | undefined;
+  try {
+    const referrer = new URL(runtime.referrer);
+    if (
+      ['https:', 'http:'].includes(referrer.protocol) &&
+      !referrer.username &&
+      !referrer.password &&
+      referrer.hostname !== COOKIE_DOMAIN &&
+      !referrer.hostname.endsWith(`.${COOKIE_DOMAIN}`)
+    )
+      referralSource = label(referrer.hostname);
+  } catch {
+    /* A missing/invalid referrer contributes no source. */
+  }
   return {
     source:
-      label(url.searchParams.get('utm_source')) ||
-      (referrer && new URL(referrer).hostname !== url.hostname
-        ? bounded(new URL(referrer).hostname) || 'direct'
-        : 'direct'),
+      label(url.searchParams.get('utm_source')) || referralSource || 'direct',
     medium: label(url.searchParams.get('utm_medium')),
     campaign: label(url.searchParams.get('utm_campaign')),
-    landing_page: publicPage(url.href) || url.origin,
-    referrer,
-    timestamp: runtime.now().toISOString(),
   };
 }
 function storedSource(value: unknown): AcquisitionSource | undefined {
@@ -260,25 +251,9 @@ function storedSource(value: unknown): AcquisitionSource | undefined {
     typeof record?.['source'] === 'string'
       ? label(record['source'])
       : undefined;
-  const landing =
-    typeof record?.['landing_page'] === 'string'
-      ? publicPage(record['landing_page'])
-      : undefined;
-  const timestamp =
-    typeof record?.['timestamp'] === 'string'
-      ? bounded(record['timestamp'], 30)
-      : undefined;
-  if (
-    !source ||
-    !landing ||
-    !timestamp ||
-    !Number.isFinite(Date.parse(timestamp))
-  )
-    return undefined;
+  if (!source) return undefined;
   return {
     source,
-    landing_page: landing,
-    timestamp,
     medium:
       typeof record?.['medium'] === 'string'
         ? label(record['medium'])
@@ -286,10 +261,6 @@ function storedSource(value: unknown): AcquisitionSource | undefined {
     campaign:
       typeof record?.['campaign'] === 'string'
         ? label(record['campaign'])
-        : undefined,
-    referrer:
-      typeof record?.['referrer'] === 'string'
-        ? publicPage(record['referrer'])
         : undefined,
   };
 }
@@ -432,7 +403,6 @@ export function createBrowserAcquisitionRuntime(): AcquisitionRuntime {
       document.cookie = value;
     },
     consentUpdates: runtimeWindow.dataLayer,
-    now: () => new Date(),
     randomId: () => crypto.randomUUID(),
   };
 }

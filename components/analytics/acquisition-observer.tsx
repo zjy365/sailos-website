@@ -10,6 +10,7 @@ import {
 export function AcquisitionObserver() {
   const observations = useRef<{
     observedVisitor?: string;
+    consentSnapshot?: string;
   }>({});
   useEffect(() => {
     const state = observations.current;
@@ -33,6 +34,31 @@ export function AcquisitionObserver() {
     };
     const visit = () => {
       const context = readAcquisitionContext(createBrowserAcquisitionRuntime());
+      if (context.consent.analytics_storage !== 'unspecified') {
+        // Restore a real saved choice before GTM handles this page's first visit.
+        // Unspecified ads stay denied; only newly observed CMP grants can enable them.
+        const permissions = {
+          analytics_storage: context.consent.analytics_storage,
+          ad_storage:
+            context.consent.ad_storage === 'granted' ? 'granted' : 'denied',
+          ad_user_data:
+            context.consent.ad_user_data === 'granted' ? 'granted' : 'denied',
+          ad_personalization:
+            context.consent.ad_personalization === 'granted'
+              ? 'granted'
+              : 'denied',
+        };
+        const snapshot = JSON.stringify(permissions);
+        if (state.consentSnapshot !== snapshot) {
+          // Set before push: existing GTM refresh callbacks may re-enter this observer.
+          state.consentSnapshot = snapshot;
+          runtimeWindow.dataLayer = runtimeWindow.dataLayer || [];
+          runtimeWindow.dataLayer.push({
+            event: 'sealos_consent_update',
+            ...permissions,
+          });
+        }
+      }
       if (!context.visitor_id) {
         state.observedVisitor = undefined;
         return;

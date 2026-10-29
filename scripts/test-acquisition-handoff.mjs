@@ -78,8 +78,11 @@ test('consented visit survives navigation and preserves the first source', () =>
     },
   ]);
   const first = api.readAcquisitionContext(runtime);
-  assert.equal(first.source.landing_page, 'https://sealos.io/downloads');
-  assert.equal(first.source.referrer, 'https://search.test/results');
+  assert.deepEqual(first.source, {
+    source: 'campaign',
+    medium: 'cpc',
+    campaign: 'launch',
+  });
   assert.equal(JSON.stringify(first).includes('secret'), false);
   runtime.href = 'https://sealos.io/downloads';
   const after = api.readAcquisitionContext(runtime);
@@ -343,7 +346,7 @@ test('campaign PII and URL secrets are omitted from the shared snapshot', () => 
     const saved = payload(cookies);
     assert.equal(saved.source.campaign, undefined);
     assert.equal(saved.source.referrer, undefined);
-    assert.equal(saved.source.landing_page, 'https://sealos.io/downloads');
+    assert.equal(saved.source.landing_page, undefined);
   }
 });
 test('Cookie blocked storage cannot create an identity or affect downloads', () => {
@@ -423,8 +426,11 @@ test('Cookie carries only the minimal backend fields and is bounded after UTF-8 
     Buffer.from(cookies.at(-1).split(';')[0].split('=')[1], 'base64url')
       .length <= 1800,
   );
-  assert.ok(saved.source.landing_page.length <= 250);
-  assert.ok(saved.source.referrer.length <= 250);
+  assert.deepEqual(Object.keys(saved.source).sort(), [
+    'campaign',
+    'medium',
+    'source',
+  ]);
   assert.equal(saved.platform_ids, undefined);
   assert.equal(saved.sea_attr, undefined);
 });
@@ -468,8 +474,74 @@ test('Cookie write failures do not interrupt consented observation or ordinary n
   assert.doesNotThrow(() => api.setAcquisitionAnalyticsConsent(runtime, false));
 });
 
-function componentHarness(file, component) {
+test('unused long URLs and timestamps never enlarge the shared visitor Cookie', () => {
+  const { runtime, cookies } = browser();
+  granted(runtime);
+  runtime.href =
+    'https://sealos.io/' +
+    '搜'.repeat(250) +
+    '?utm_source=' +
+    '搜'.repeat(100) +
+    '&utm_medium=' +
+    '媒'.repeat(100) +
+    '&utm_campaign=' +
+    '广'.repeat(100);
+  runtime.referrer = 'https://search.test/' + '搜'.repeat(250);
+  api.readAcquisitionContext(runtime);
+  assert.equal(payload(cookies).source.source, '搜'.repeat(100));
+  assert.equal(payload(cookies).source.landing_page, undefined);
+  assert.equal(payload(cookies).source.referrer, undefined);
+  assert.equal(payload(cookies).source.timestamp, undefined);
+  assert.equal(payload(cookies).visitor_id, runtime.randomId());
+  assert.ok(
+    Buffer.from(cookies.at(-1).split(';')[0].split('=')[1], 'base64url')
+      .length <= 1800,
+  );
+});
+
+test('legacy first-source snapshots retain only consumed labels and infer referral hosts without storing URLs', () => {
   const { runtime, cookies, values } = browser();
+  granted(runtime);
+  values.set(
+    'sealos_acquisition_source_v1',
+    JSON.stringify({
+      first_touch: {
+        source: 'legacy',
+        medium: 'cpc',
+        campaign: 'first',
+        landing_page: 'https://sealos.io/old?token=private',
+        referrer: 'https://search.test/private',
+        timestamp: '2026-10-29T00:00:00Z',
+      },
+    }),
+  );
+  values.set('sealos_acquisition_visitor_v1', runtime.randomId());
+  api.readAcquisitionContext(runtime);
+  assert.deepEqual(payload(cookies).source, {
+    source: 'legacy',
+    medium: 'cpc',
+    campaign: 'first',
+  });
+  assert.doesNotMatch(
+    values.get('sealos_acquisition_source_v1'),
+    /landing_page|referrer|timestamp|private/,
+  );
+  const referral = browser();
+  referral.runtime.href = 'https://sealos.io/downloads';
+  granted(referral.runtime);
+  assert.equal(
+    api.readAcquisitionContext(referral.runtime).source.source,
+    'search.test',
+  );
+  assert.doesNotMatch(
+    referral.values.get('sealos_acquisition_source_v1'),
+    /results|referrer|timestamp/,
+  );
+});
+
+function componentHarness(file, component, prepare = () => {}) {
+  const { runtime, cookies, values } = browser();
+  prepare(runtime, values);
   const target = new EventTarget();
   target.dataLayer = runtime.consentUpdates;
   // Node 20's EventTarget does not normalize boolean capture on removal as the
@@ -687,4 +759,69 @@ test('effect replay does not duplicate visits and missing scalar source fields e
   h.cleanup();
   h.click();
   assert.equal(h.events().length, 1);
+});
+
+test('returning stored analytics consent reaches existing GTM before the visit exactly once across effect replay', () => {
+  const h = componentHarness(
+    observerSource,
+    'AcquisitionObserver',
+    (_runtime, values) => {
+      values.set(
+        'sealos_acquisition_consent_v1',
+        JSON.stringify({ analytics_storage: 'granted' }),
+      );
+    },
+  );
+  const updates = () =>
+    h.target.dataLayer.filter((item) => item.event === 'sealos_consent_update');
+  assert.equal(updates().length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(updates()[0])), {
+    event: 'sealos_consent_update',
+    analytics_storage: 'granted',
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+  });
+  assert.ok(
+    h.target.dataLayer.indexOf(updates()[0]) <
+      h.target.dataLayer.indexOf(h.events()[0]),
+  );
+  h.replayEffect();
+  h.target.dispatchEvent(new Event('sealos_consent_update'));
+  assert.equal(updates().length, 1);
+  assert.equal(h.events().length, 1);
+  h.cleanup();
+});
+
+test('withdrawal observed before late GTM does not replay an old stored grant or old advertising grants', () => {
+  const h = componentHarness(
+    observerSource,
+    'AcquisitionObserver',
+    (runtime) => {
+      granted(runtime);
+      runtime.consentUpdates.push([
+        'consent',
+        'update',
+        {
+          ad_storage: 'granted',
+          ad_user_data: 'granted',
+          ad_personalization: 'granted',
+        },
+      ]);
+      const other = browser();
+      other.runtime.storage = runtime.storage;
+      api.setAcquisitionAnalyticsConsent(other.runtime, false);
+    },
+  );
+  assert.equal(h.events().length, 0);
+  const last = h.target.dataLayer
+    .filter((item) => item.event === 'sealos_consent_update')
+    .at(-1);
+  assert.equal(last.analytics_storage, 'denied');
+  assert.equal(last.ad_storage, 'denied');
+  assert.equal(last.ad_user_data, 'denied');
+  assert.equal(last.ad_personalization, 'denied');
+  h.replayEffect();
+  assert.equal(h.events().length, 0);
+  h.cleanup();
 });

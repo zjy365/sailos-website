@@ -26,7 +26,7 @@ The Cookie is unpadded UTF-8 Base64URL JSON, at most 1800 decoded bytes:
 }
 ```
 
-Source additionally permits sanitized `landing_page`, `referrer` and an ISO timestamp. Labels are bounded to 100 characters; URLs to 250 characters with no credentials, query or fragment. Excess source data is omitted before an oversized Cookie can be written. Advertising permissions are never invented by the analytics checkbox. Same-origin cross-tab decisions synchronize through the existing consent storage key; consumed historical grants cannot undo withdrawal.
+Source contains only the consumed `source`, `medium` and `campaign` labels, bounded to 100 characters each. A referrer host can infer the source, but landing/referrer URLs and timestamps are not persisted in this feature's Cookie or local source snapshot. Old snapshots are reduced to these three labels. Advertising permissions are never invented by the analytics checkbox. Same-origin cross-tab decisions synchronize through the existing consent storage key; consumed historical grants cannot undo withdrawal.
 
 ## Retained and removed components
 
@@ -41,7 +41,11 @@ Source additionally permits sanitized `landing_page`, `referrer` and an ISO time
 
 ## Events, configuration and acceptance
 
+Landing/referrer URLs and capture timestamps were also removed from the new source snapshot: the App, Web linkage and new GA4 tags consume only the three campaign labels. The original GTM attribution storage remains unchanged.
+
 Only currently consented observations emit `acquisition_visit` or `download_click` with `visitor_id`, `surface=website`, `product_edition=global`, `analytics_consent=granted` and nullable `acquisition_source`, `acquisition_medium`, `acquisition_campaign`. Scalar fields explicitly clear absent values. The new events exclude raw URLs, credentials, `sea_attr` and account IDs. A download click is not an installation.
+
+The observer synchronizes the current analytics choice through the existing GTM `sealos_consent_update` rule before a visit, including on a returning page with a saved grant. Permission snapshots are deduplicated across effect replay; unspecified advertising stays denied. The new tags also require the current shared Cookie to remain granted and match the event's visitor, so GTM processing an old queued event after withdrawal cannot revive that journey. This guard checks bounded canonical Base64URL and valid UTF-8/JSON without rewriting the Cookie.
 
 Generate and test the additive website tags using `scripts/gtm-acquisition/generate.cjs` and its tests. Follow that directory's README to merge-import into the existing **Web** container. Data Layer pushes alone do not complete GA collection: official importer/Preview verification and publication are required operational steps. No production GTM setting is changed by this PR.
 
