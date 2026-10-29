@@ -162,34 +162,6 @@ export function Analytics() {
         </Script>
       )}
 
-      {analyticsConfig.google?.enabled && (
-        <>
-          <Script
-            strategy="afterInteractive"
-            src={`https://www.googletagmanager.com/gtag/js?id=${analyticsConfig.google.trackingId}`}
-            id="google-analytics"
-          />
-          <Script strategy="afterInteractive" id="google-analytics-config">
-            {`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${analyticsConfig.google.trackingId}', {
-                send_page_view: false  // Defer page view to improve FCP
-              });
-              // Send page view after the page is interactive
-              if (document.readyState === 'complete') {
-                gtag('event', 'page_view');
-              } else {
-                window.addEventListener('load', function() {
-                  gtag('event', 'page_view');
-                });
-              }
-            `}
-          </Script>
-        </>
-      )}
-
       {analyticsConfig.email?.enabled && (
         <Script strategy="afterInteractive" id="email-analytics">
           {`

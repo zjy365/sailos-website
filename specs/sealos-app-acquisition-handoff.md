@@ -4,6 +4,8 @@ This website change accompanies [App #596](https://github.com/labring/sealox/pul
 
 The two channels stay separate: `sealos.run` uses the China Cookie and domestic Rybbit; `sealos.io` uses the Global Cookie and Web GTM/GA4. The App routes by Main's selected product edition, never by download origin or Cookie contents. A different Cookie realm remains unmatched and cannot reroute events to the other destination.
 
+Website runtime code configures only the GTM container for Google analytics. The unused direct GA loader and its disabled measurement-ID configuration are removed. GA4 destination IDs remain in the GTM import configuration, where tags need them; neither website visitor linkage nor console OAuth requires one.
+
 ## Journey and ownership
 
 1. The website reads explicit or saved permission from the existing analytics consent signals. It adds no standalone visitor-linkage notice or checkbox on any page. Removing that UI does not grant permission: only a granted signal creates a random UUID and retains the first consented source; unknown or denied permission creates no identified website event.
