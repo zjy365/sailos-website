@@ -2,12 +2,14 @@
 
 This website change accompanies [App #596](https://github.com/labring/sealox/pull/596) and [console OAuth #7421](https://github.com/labring/sealos/pull/7421), implementing the visitor linkage in [#584](https://github.com/labring/sealox/issues/584). Overseas events use the existing Web GTM `GTM-5DTRN2V3` and GA4 `G-YF5VHZSTE0`; domestic events use the existing Rybbit destination. No new analytics database, MP relay, sGTM deployment or Brain change is required.
 
+The two channels stay separate: `sealos.run` uses the China Cookie and domestic Rybbit; `sealos.io` uses the Global Cookie and Web GTM/GA4. The App routes by Main's selected product edition, never by download origin or Cookie contents. A different Cookie realm remains unmatched and cannot reroute events to the other destination.
+
 ## Journey and ownership
 
 1. A visitor explicitly permits analytics on the website. The website creates a random UUID and retains the first consented source. Unknown or denied permission creates no identified website event.
 2. The observer writes `sealos_acquisition_v1` synchronously before ordinary installer navigation. On HTTPS `sealos.io` and `www.sealos.io`, the Cookie uses `Domain=sealos.io; Path=/; Secure; SameSite=Lax; Max-Age=2592000`. Root and www can reuse an existing shared visitor after consent. Unknown permission must not delete another origin's journey; explicit denial clears the shared Cookie and this feature's local visitor/source state.
 3. The visitor downloads the ordinary installer, opens the App and signs in through the system browser's console OAuth page. The console reads the shared Cookie, validates it and associates its visitor with the server-verified account. The App retains its own installation/client ID. Cookie data never selects or authenticates the account.
-4. The website's `acquisition_visit` and `download_click` events carry the same visitor ID. The console and App emit `visitor_linked` with the verified User-ID. Events enter the existing GA4 destination. The additive website GTM patch is part of this PR; the App/console patch is delivered separately.
+4. The website's `acquisition_visit` and `download_click` events carry the same visitor ID. The console's Data Layer event `web_visitor_linked` maps to GA4 `visitor_linked`; the App also emits GA4 `visitor_linked`, both with the verified User-ID. Events enter the existing GA4 destination. The additive website GTM patch is part of this PR; the App/console patch is delivered separately.
 
 The Cookie is unpadded UTF-8 Base64URL JSON, at most 1800 decoded bytes:
 
