@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   createBrowserAcquisitionRuntime,
   readAcquisitionContext,
@@ -22,7 +22,11 @@ export function AcquisitionObserver() {
       const properties = {
         visitor_id: context.visitor_id,
         surface: 'website',
-        source: context.source?.source || 'direct',
+        product_edition: 'global',
+        analytics_consent: 'granted',
+        acquisition_source: context.source?.source ?? null,
+        acquisition_medium: context.source?.medium ?? null,
+        acquisition_campaign: context.source?.campaign ?? null,
       };
       runtimeWindow.dataLayer = runtimeWindow.dataLayer || [];
       runtimeWindow.dataLayer.push({ event: name, ...properties });

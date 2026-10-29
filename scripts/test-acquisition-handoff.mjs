@@ -467,3 +467,224 @@ test('Cookie write failures do not interrupt consented observation or ordinary n
   );
   assert.doesNotThrow(() => api.setAcquisitionAnalyticsConsent(runtime, false));
 });
+
+function componentHarness(file, component) {
+  const { runtime, cookies, values } = browser();
+  const target = new EventTarget();
+  target.dataLayer = runtime.consentUpdates;
+  // Node 20's EventTarget does not normalize boolean capture on removal as the
+  // browser DOM does. Preserve the real DOM contract at this boundary.
+  const document = new (class extends EventTarget {
+    addEventListener(type, listener, options) {
+      super.addEventListener(
+        type,
+        listener,
+        typeof options === 'boolean' ? { capture: options } : options,
+      );
+    }
+    removeEventListener(type, listener, options) {
+      super.removeEventListener(
+        type,
+        listener,
+        typeof options === 'boolean' ? { capture: options } : options,
+      );
+    }
+  })();
+  const states = [],
+    refs = [],
+    effects = [];
+  let stateCursor = 0,
+    refCursor = 0,
+    cleanups = [];
+  class Anchor {
+    constructor(download = true) {
+      this.download = download;
+    }
+    closest(selector) {
+      return this.download && selector.includes('a[download]') ? this : null;
+    }
+  }
+  const react = {
+    useRef(initial) {
+      const i = refCursor++;
+      return (refs[i] ||= { current: initial });
+    },
+    useState(initial) {
+      const i = stateCursor++;
+      if (!(i in states)) states[i] = initial;
+      return [
+        states[i],
+        (next) => {
+          states[i] = next;
+        },
+      ];
+    },
+    useEffect(effect) {
+      effects.push(effect);
+    },
+  };
+  const exports = {};
+  const jsx = (type, props) => ({ type, props });
+  const code = ts.transpileModule(file, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      jsx: ts.JsxEmit.ReactJSX,
+      esModuleInterop: true,
+    },
+  }).outputText;
+  vm.runInNewContext(code, {
+    exports,
+    document,
+    Element: Anchor,
+    Event,
+    window: target,
+    require: (name) =>
+      name === 'react'
+        ? react
+        : name === 'react/jsx-runtime'
+          ? { jsx, jsxs: jsx }
+          : {
+              ...api,
+              createBrowserAcquisitionRuntime: () => runtime,
+              subscribeAcquisitionConsent(listener) {
+                target.addEventListener('sealos_consent_update', listener);
+                return () =>
+                  target.removeEventListener('sealos_consent_update', listener);
+              },
+            },
+  });
+  const render = () => {
+    stateCursor = 0;
+    refCursor = 0;
+    return exports[component]();
+  };
+  const find = (node, type) => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === type) return node;
+    for (const child of [node.props?.children].flat(Infinity)) {
+      const match = find(child, type);
+      if (match) return match;
+    }
+  };
+  render();
+  const mount = () => {
+    cleanups = effects.map((effect) => effect());
+  };
+  const cleanup = () => {
+    for (const fn of cleanups) fn?.();
+  };
+  mount();
+  return {
+    runtime,
+    cookies,
+    values,
+    target,
+    document,
+    consent(allowed) {
+      api.setAcquisitionAnalyticsConsent(runtime, allowed);
+      target.dispatchEvent(new Event('sealos_consent_update'));
+    },
+    click(download = true) {
+      const event = new Event('click', { cancelable: true });
+      Object.defineProperty(event, 'target', { value: new Anchor(download) });
+      document.dispatchEvent(event);
+      return event;
+    },
+    control: (type) => find(render(), type),
+    events: () =>
+      target.dataLayer.filter((entry) =>
+        ['acquisition_visit', 'download_click'].includes(entry.event),
+      ),
+    replayEffect() {
+      cleanup();
+      mount();
+    },
+    cleanup,
+  };
+}
+
+const choiceSource = await readFile(
+  'components/analytics/acquisition-choice.tsx',
+  'utf8',
+);
+const observerSource = await readFile(
+  'components/analytics/acquisition-observer.tsx',
+  'utf8',
+);
+
+test('the real checkbox changes only analytics consent and needs no network or App-opening control', () => {
+  const h = componentHarness(choiceSource, 'AcquisitionChoice');
+  assert.equal(h.control('button'), undefined);
+  h.control('input').props.onChange({ currentTarget: { checked: true } });
+  assert.equal(
+    api.readAcquisitionConsent(h.runtime).analytics_storage,
+    'granted',
+  );
+  assert.equal(api.readAcquisitionConsent(h.runtime).ad_storage, 'unspecified');
+  h.control('input').props.onChange({ currentTarget: { checked: false } });
+  assert.equal(
+    api.readAcquisitionConsent(h.runtime).analytics_storage,
+    'denied',
+  );
+  h.cleanup();
+});
+
+test('the actual observer writes the Cookie before direct download and emits the complete global wire', () => {
+  const h = componentHarness(observerSource, 'AcquisitionObserver');
+  assert.equal(h.events().length, 0);
+  assert.equal(h.click().defaultPrevented, false);
+  assert.equal(h.events().length, 0);
+  h.consent(true);
+  assert.equal(h.events().length, 1);
+  assert.ok(h.cookies.length > 0);
+  h.click();
+  assert.deepEqual(JSON.parse(JSON.stringify(h.events())), [
+    {
+      event: 'acquisition_visit',
+      visitor_id: h.runtime.randomId(),
+      surface: 'website',
+      product_edition: 'global',
+      analytics_consent: 'granted',
+      acquisition_source: 'campaign',
+      acquisition_medium: 'cpc',
+      acquisition_campaign: 'launch',
+    },
+    {
+      event: 'download_click',
+      visitor_id: h.runtime.randomId(),
+      surface: 'website',
+      product_edition: 'global',
+      analytics_consent: 'granted',
+      acquisition_source: 'campaign',
+      acquisition_medium: 'cpc',
+      acquisition_campaign: 'launch',
+    },
+  ]);
+  assert.equal(payload(h.cookies).visitor_id, h.events()[1].visitor_id);
+  h.click(false);
+  assert.equal(h.events().length, 2);
+  h.consent(false);
+  assert.equal(h.click().defaultPrevented, false);
+  assert.equal(h.events().length, 2);
+  assert.match(h.cookies.at(-1), /Max-Age=0$/);
+  h.cleanup();
+});
+
+test('effect replay does not duplicate visits and missing scalar source fields explicitly clear stale Data Layer values', () => {
+  const h = componentHarness(observerSource, 'AcquisitionObserver');
+  h.runtime.href = 'https://sealos.io/downloads';
+  h.runtime.referrer = '';
+  h.target.dataLayer.push({
+    acquisition_medium: 'stale',
+    acquisition_campaign: 'stale',
+  });
+  h.consent(true);
+  h.replayEffect();
+  assert.equal(h.events().length, 1);
+  assert.equal(h.events()[0].acquisition_source, 'direct');
+  assert.equal(h.events()[0].acquisition_medium, null);
+  assert.equal(h.events()[0].acquisition_campaign, null);
+  h.cleanup();
+  h.click();
+  assert.equal(h.events().length, 1);
+});
