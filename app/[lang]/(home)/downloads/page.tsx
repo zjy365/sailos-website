@@ -1,4 +1,3 @@
-import { AcquisitionChoice } from '@/components/analytics/acquisition-choice';
 import { getDesktopDownloads } from '@/lib/desktop-downloads';
 
 export const metadata = { title: 'Download Sealos Desktop' };
@@ -25,7 +24,6 @@ export default async function DesktopDownloadsPage({
           ? '安装后在 App 内选择国内或全球账号。'
           : 'After installation, choose China or Global inside the App.'}
       </p>
-      <AcquisitionChoice />
       <div className="flex flex-wrap gap-4">
         {downloads.map((item) => (
           <a

@@ -6,7 +6,7 @@ The two channels stay separate: `sealos.run` uses the China Cookie and domestic 
 
 ## Journey and ownership
 
-1. A visitor explicitly permits analytics on the website. The website creates a random UUID and retains the first consented source. Unknown or denied permission creates no identified website event.
+1. The website reads explicit or saved permission from the existing analytics consent signals. It adds no standalone visitor-linkage notice or checkbox on any page. Removing that UI does not grant permission: only a granted signal creates a random UUID and retains the first consented source; unknown or denied permission creates no identified website event.
 2. The observer writes `sealos_acquisition_v1` synchronously before ordinary installer navigation. On HTTPS `sealos.io` and `www.sealos.io`, the Cookie uses `Domain=sealos.io; Path=/; Secure; SameSite=Lax; Max-Age=2592000`. Root and www can reuse an existing shared visitor after consent. Unknown permission must not delete another origin's journey; explicit denial clears the shared Cookie and this feature's local visitor/source state.
 3. The visitor downloads the ordinary installer, opens the App and signs in through the system browser's console OAuth page. The console reads the shared Cookie, validates it and associates its visitor with the server-verified account. The App retains its own installation/client ID. Cookie data never selects or authenticates the account.
 4. The website's `acquisition_visit` and `download_click` events carry the same visitor ID. The console's Data Layer event `web_visitor_linked` maps to GA4 `visitor_linked`; the App also emits GA4 `visitor_linked`, both with the verified User-ID. Events enter the existing GA4 destination. The additive website GTM patch is part of this PR; the App/console patch is delivered separately.
@@ -28,13 +28,14 @@ The Cookie is unpadded UTF-8 Base64URL JSON, at most 1800 decoded bytes:
 }
 ```
 
-Source contains only the consumed `source`, `medium` and `campaign` labels, bounded to 100 characters each. A referrer host can infer the source, but landing/referrer URLs and timestamps are not persisted in this feature's Cookie or local source snapshot. Old snapshots are reduced to these three labels. Advertising permissions are never invented by the analytics checkbox. Same-origin cross-tab decisions synchronize through the existing consent storage key; consumed historical grants cannot undo withdrawal.
+Source contains only the consumed `source`, `medium` and `campaign` labels, bounded to 100 characters each. A referrer host can infer the source, but landing/referrer URLs and timestamps are not persisted in this feature's Cookie or local source snapshot. Old snapshots are reduced to these three labels. Analytics permission never grants advertising permission. Same-origin cross-tab decisions synchronize through the existing consent storage key; consumed historical grants cannot undo withdrawal.
 
 ## Retained and removed components
 
 | Component                                                                                         | Decision and evidence                                                                                                                                                   |
 | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Analytics choice, visitor UUID, first source, observer, ordinary download anchors                 | Retained: removing consent or identity breaks the privacy/linkage contract; installer navigation must remain independent.                                               |
+| Consent signal handling, visitor UUID, first source, observer, ordinary download anchors          | Retained: removing consent or identity breaks the privacy/linkage contract; installer navigation must remain independent.                                               |
+| Standalone visitor-linkage notice and checkbox                                                    | Removed: the existing consent signal handling and Cookie/event pipeline do not require this UI. Removing it does not imply consent.                                     |
 | Shared-domain Cookie                                                                              | Required: the console cannot read the website's origin-local storage. Local browser testing observes the Cookie on the console's real HTTP request.                     |
 | `/app-attribution`, capability POST/continuation, acquisition issue API and acquisition deep link | Removed: backend #7421 consumes the Cookie during normal OAuth; its linkage functions work without those old endpoints.                                                 |
 | New Cookie's GA/Rybbit aliases and copied `sea_attr`                                              | Removed: the same visitor/account/installation linkage succeeds without them. GA client ID may help diagnose historical SDK behavior but is not a required linkage key. |

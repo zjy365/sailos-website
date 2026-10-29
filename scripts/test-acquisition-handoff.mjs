@@ -630,14 +630,6 @@ function componentHarness(file, component, prepare = () => {}) {
     refCursor = 0;
     return exports[component]();
   };
-  const find = (node, type) => {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === type) return node;
-    for (const child of [node.props?.children].flat(Infinity)) {
-      const match = find(child, type);
-      if (match) return match;
-    }
-  };
   render();
   const mount = () => {
     cleanups = effects.map((effect) => effect());
@@ -662,7 +654,6 @@ function componentHarness(file, component, prepare = () => {}) {
       document.dispatchEvent(event);
       return event;
     },
-    control: (type) => find(render(), type),
     events: () =>
       target.dataLayer.filter((entry) =>
         ['acquisition_visit', 'download_click'].includes(entry.event),
@@ -675,31 +666,10 @@ function componentHarness(file, component, prepare = () => {}) {
   };
 }
 
-const choiceSource = await readFile(
-  'components/analytics/acquisition-choice.tsx',
-  'utf8',
-);
 const observerSource = await readFile(
   'components/analytics/acquisition-observer.tsx',
   'utf8',
 );
-
-test('the real checkbox changes only analytics consent and needs no network or App-opening control', () => {
-  const h = componentHarness(choiceSource, 'AcquisitionChoice');
-  assert.equal(h.control('button'), undefined);
-  h.control('input').props.onChange({ currentTarget: { checked: true } });
-  assert.equal(
-    api.readAcquisitionConsent(h.runtime).analytics_storage,
-    'granted',
-  );
-  assert.equal(api.readAcquisitionConsent(h.runtime).ad_storage, 'unspecified');
-  h.control('input').props.onChange({ currentTarget: { checked: false } });
-  assert.equal(
-    api.readAcquisitionConsent(h.runtime).analytics_storage,
-    'denied',
-  );
-  h.cleanup();
-});
 
 test('the actual observer writes the Cookie before direct download and emits the complete global wire', () => {
   const h = componentHarness(observerSource, 'AcquisitionObserver');
