@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { AcquisitionChoice } from '@/components/analytics/acquisition-choice';
 import { getDesktopDownloads } from '@/lib/desktop-downloads';
 
@@ -55,13 +54,6 @@ export default async function DesktopDownloadsPage({
         >
           {chinese ? '所有发布版本' : 'All releases'}
         </a>
-      </p>
-      <p>
-        <Link href="/app-attribution" className="underline">
-          {chinese
-            ? '安装完成，打开 Sealos 并继续'
-            : 'Installed? Open Sealos and continue'}
-        </Link>
       </p>
     </main>
   );

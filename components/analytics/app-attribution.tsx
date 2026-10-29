@@ -5,7 +5,6 @@ import {
   completeAcquisitionBridge,
   createBrowserAcquisitionRuntime,
   getAcquisitionBridgeTarget,
-  issueAcquisitionAppLink,
   readAcquisitionConsent,
   setAcquisitionAnalyticsConsent,
   subscribeAcquisitionConsent,
@@ -16,8 +15,7 @@ export function AppAttribution() {
   const [consent, setConsent] = useState<'granted' | 'denied' | 'unspecified'>(
     'unspecified',
   );
-  const [message, setMessage] = useState('Continue in the Sealos desktop App.');
-  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('Continuing sign-in…');
   const pending = useRef<Promise<string> | undefined>(undefined);
   const originalHref = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -27,8 +25,7 @@ export function AppAttribution() {
       readAcquisitionConsent(createBrowserAcquisitionRuntime())
         .analytics_storage,
     );
-    // The page contains no trackers. Remove the short capability from the
-    // address bar before any subsequent link can carry it as a referrer.
+    // Remove the capability before any subsequent navigation can expose it in a referrer.
     window.history.replaceState(null, '', window.location.pathname);
     return subscribeAcquisitionConsent(() => {
       setConsent(
@@ -38,16 +35,13 @@ export function AppAttribution() {
     });
   }, []);
   const bridge = href ? getAcquisitionBridgeTarget(href) : undefined;
-  const invalidBridge = href
-    ? new URL(href).searchParams.has('handoff') && !bridge
-    : false;
   useEffect(() => {
     if (!href || !getAcquisitionBridgeTarget(href) || consent === 'unspecified')
       return;
     let active = true;
     const runtime = createBrowserAcquisitionRuntime();
-    runtime.href = href || runtime.href;
-    pending.current ??= completeAcquisitionBridge(href || '', runtime);
+    runtime.href = href;
+    pending.current ??= completeAcquisitionBridge(href, runtime);
     pending.current
       .then((url) => {
         if (active) window.location.replace(url);
@@ -69,45 +63,16 @@ export function AppAttribution() {
     );
     window.dispatchEvent(new Event('sealos_consent_update'));
     setConsent(next.analytics_storage);
-    return next;
-  };
-  const open = async (allowed: boolean) => {
-    choose(allowed);
-    if (!allowed) {
-      window.location.assign('zcode://sealos/open');
-      return;
-    }
-    setBusy(true);
-    setMessage('Opening Sealos…');
-    try {
-      const runtime = createBrowserAcquisitionRuntime();
-      if (href) runtime.href = href;
-      const link = await issueAcquisitionAppLink(runtime);
-      window.location.assign(link);
-      setMessage(
-        'If Sealos did not open, check that it is installed, then try again.',
-      );
-    } catch {
-      setMessage(
-        'Source handoff is unavailable. You can still open Sealos below.',
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-  const act = (allowed: boolean) => {
-    if (bridge) choose(allowed);
-    else void open(allowed);
   };
   return (
     <main className="mx-auto max-w-xl space-y-5 px-6 py-16">
       <h1 className="text-2xl font-semibold">Continue in Sealos</h1>
       <output aria-live="polite">
-        {invalidBridge
+        {href && !bridge
           ? 'This link is invalid or expired. Start sign-in again from the App.'
           : message}
       </output>
-      {!invalidBridge && (!bridge || consent === 'unspecified') && (
+      {bridge && consent === 'unspecified' && (
         <>
           <p>
             Allow this website visit to be linked to your App sign-in,
@@ -117,16 +82,14 @@ export function AppAttribution() {
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
-              disabled={busy}
-              onClick={() => act(true)}
+              onClick={() => choose(true)}
               className="rounded border px-4 py-2"
             >
               Allow and continue
             </button>
             <button
               type="button"
-              disabled={busy}
-              onClick={() => act(false)}
+              onClick={() => choose(false)}
               className="rounded border px-4 py-2"
             >
               Continue without linking
@@ -134,15 +97,6 @@ export function AppAttribution() {
           </div>
         </>
       )}
-      <p>
-        <a href="zcode://sealos/open" className="underline">
-          Open Sealos without source handoff
-        </a>
-      </p>
-      <p className="text-sm">
-        This website uses the Global account service. Your selection inside the
-        App still determines the account region.
-      </p>
     </main>
   );
 }
