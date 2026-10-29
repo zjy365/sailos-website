@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import {
   createBrowserAcquisitionRuntime,
-  issueAcquisitionAppLink,
   readAcquisitionConsent,
   setAcquisitionAnalyticsConsent,
   subscribeAcquisitionConsent,
@@ -10,8 +9,6 @@ import {
 
 export function AcquisitionChoice() {
   const [allowed, setAllowed] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
   useEffect(() => {
     const sync = () =>
       setAllowed(
@@ -21,27 +18,6 @@ export function AcquisitionChoice() {
     sync();
     return subscribeAcquisitionConsent(sync);
   }, []);
-  const open = async () => {
-    if (busy) return;
-    const runtime = createBrowserAcquisitionRuntime();
-    let link = 'zcode://sealos/open';
-    if (readAcquisitionConsent(runtime).analytics_storage === 'granted') {
-      setBusy(true);
-      try {
-        const attributedLink = await issueAcquisitionAppLink(runtime);
-        if (
-          readAcquisitionConsent(createBrowserAcquisitionRuntime())
-            .analytics_storage === 'granted'
-        )
-          link = attributedLink;
-      } catch {
-        setMessage('Source linking is unavailable. Opening Sealos.');
-      } finally {
-        setBusy(false);
-      }
-    }
-    window.location.assign(link);
-  };
   return (
     <div className="space-y-2 text-sm">
       <label className="block">
@@ -59,19 +35,6 @@ export function AcquisitionChoice() {
         Allow this visit to be linked to my App sign-in and usage. Advertising
         tracking stays off.
       </label>
-      <button
-        type="button"
-        onClick={open}
-        aria-disabled={busy}
-        className="underline"
-      >
-        {busy ? 'Opening Sealos…' : 'Installed? Open Sealos'}
-      </button>
-      {message && (
-        <output aria-live="polite" className="block">
-          {message}
-        </output>
-      )}
     </div>
   );
 }

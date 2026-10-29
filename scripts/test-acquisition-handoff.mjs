@@ -15,24 +15,24 @@ const code = ts.transpileModule(source, {
 const api = await import(
   `data:text/javascript;base64,${Buffer.from(code).toString('base64')}`
 );
-const authority = api.ACQUISITION_AUTHORITY;
-const capability = 'capability-1234567890123456789012345';
 function browser() {
   const values = new Map();
+  const cookies = [];
   const runtime = {
     storage: {
       getItem: (key) => values.get(key) ?? null,
       setItem: (key, value) => values.set(key, value),
       removeItem: (key) => values.delete(key),
     },
-    href: 'https://website.test/downloads?utm_source=campaign&utm_medium=cpc&utm_campaign=launch&token=secret#fragment',
+    writeCookie: (value) => cookies.push(value),
+    href: 'https://sealos.io/downloads?utm_source=campaign&utm_medium=cpc&utm_campaign=launch&token=secret#fragment',
     referrer: 'https://search.test/results?secret=private',
     cookie: '_ga=GA1.1.12345.67890',
     consentUpdates: [],
     now: () => new Date('2026-10-29T00:00:00Z'),
-    randomId: () => 'visitor-12345678',
+    randomId: () => 'c85cd505-fb10-4ff9-a8f4-4ba89fbe6643',
   };
-  return { runtime, values };
+  return { runtime, values, cookies };
 }
 const granted = (runtime) => api.setAcquisitionAnalyticsConsent(runtime, true);
 const encode = (value) =>
@@ -42,6 +42,7 @@ test('no identity or source before consent; declined consent deletes stored link
   const { runtime, values } = browser();
   assert.deepEqual(api.readAcquisitionContext(runtime), {
     version: 1,
+    realm: 'global',
     consent: {
       analytics_storage: 'unspecified',
       ad_storage: 'unspecified',
@@ -53,7 +54,7 @@ test('no identity or source before consent; declined consent deletes stored link
   granted(runtime);
   assert.equal(
     api.readAcquisitionContext(runtime).visitor_id,
-    'visitor-12345678',
+    'c85cd505-fb10-4ff9-a8f4-4ba89fbe6643',
   );
   api.setAcquisitionAnalyticsConsent(runtime, false);
   const declined = api.readAcquisitionContext(runtime);
@@ -64,37 +65,27 @@ test('no identity or source before consent; declined consent deletes stored link
   assert.equal(values.has('sealos_acquisition_visitor_v1'), false);
 });
 
-test('consented visit survives navigation and preserves first source, platform alias and raw sea_attr', () => {
+test('consented visit survives navigation and preserves the first source', () => {
   const { runtime } = browser();
-  const encoded = encode({
-    version: 2,
-    first_touch: { source: 'campaign', campaign: 'launch' },
-  });
-  runtime.rawAttribution = () => encoded;
   granted(runtime);
+  runtime.consentUpdates.push([
+    'consent',
+    'update',
+    {
+      ad_storage: 'granted',
+      ad_user_data: 'granted',
+      ad_personalization: 'granted',
+    },
+  ]);
   const first = api.readAcquisitionContext(runtime);
-  assert.equal(first.platform_ids.ga_client_id, '12345.67890');
-  assert.equal(first.sea_attr, encoded);
-  assert.equal(first.source.landing_page, 'https://website.test/downloads');
+  assert.equal(first.source.landing_page, 'https://sealos.io/downloads');
   assert.equal(first.source.referrer, 'https://search.test/results');
   assert.equal(JSON.stringify(first).includes('secret'), false);
-  runtime.href = `https://website.test/app-attribution?handoff=${capability}&authority=${authority}`;
+  runtime.href = 'https://sealos.io/downloads';
   const after = api.readAcquisitionContext(runtime);
   assert.equal(after.visitor_id, first.visitor_id);
   assert.deepEqual(after.source, first.source);
-  assert.equal(after.consent.ad_user_data, 'unspecified');
-});
-
-test('ad identifiers are not forwarded on analytics-only permission', () => {
-  const { runtime } = browser();
-  granted(runtime);
-  runtime.rawAttribution = () =>
-    encode({
-      version: 3,
-      first_touch: { source: 'google', click_value: 'private-gclid' },
-    });
-  assert.equal(api.readAcquisitionContext(runtime).sea_attr, undefined);
-  assert.equal(api.readAcquisitionContext(runtime).source.source, 'campaign');
+  assert.equal(after.consent.ad_user_data, 'granted');
 });
 
 test('real consent updates override stored choices; consent defaults do not invent permission', () => {
@@ -116,198 +107,6 @@ test('real consent updates override stored choices; consent defaults do not inve
   });
   assert.equal(api.readAcquisitionContext(runtime).visitor_id, undefined);
   assert.equal(api.readAcquisitionConsent(runtime).analytics_storage, 'denied');
-});
-
-test('bridge rejects spoofed origins, credentials, paths and malformed capabilities', () => {
-  const base = new URL('https://website.test/app-attribution');
-  base.searchParams.set('handoff', capability);
-  for (const candidate of [
-    `${authority}.attacker.test`,
-    authority.replace('https:', 'http:'),
-    `${authority}/unexpected`,
-    `${authority}?redirect=https://attacker.test`,
-    authority.replace('https://', 'https://user@'),
-  ]) {
-    base.searchParams.set('authority', candidate);
-    assert.equal(
-      api.getAcquisitionBridgeTarget(base.href),
-      undefined,
-      candidate,
-    );
-  }
-  base.searchParams.set('authority', authority);
-  assert.equal(
-    api.getAcquisitionBridgeTarget(base.href).endpoint,
-    `${authority}/api/auth/oauth2/code/attribution`,
-  );
-  base.searchParams.set('handoff', 'short');
-  assert.equal(api.getAcquisitionBridgeTarget(base.href), undefined);
-});
-
-test('one browser journey issues an App code and attaches context to an OAuth attempt', async () => {
-  const { runtime } = browser();
-  granted(runtime);
-  const requests = [];
-  const request = async (url, init) => {
-    requests.push({ url, init, payload: JSON.parse(init.body) });
-    return Response.json({
-      code: capability,
-      expires_at: '2026-10-29T00:10:00Z',
-    });
-  };
-  const appLink = new URL(await api.issueAcquisitionAppLink(runtime, request));
-  assert.equal(appLink.protocol, 'zcode:');
-  assert.equal(appLink.host, 'sealos');
-  assert.equal(appLink.pathname, '/acquisition');
-  assert.equal(appLink.searchParams.get('authority'), authority);
-  assert.equal(appLink.searchParams.get('code'), capability);
-  assert.equal(requests[0].url, `${authority}/api/marketing/acquisition/issue`);
-  const href = `https://website.test/app-attribution?authority=${encodeURIComponent(authority)}&handoff=${capability}&returnTo=https://attacker.test`;
-  const continuation = await api.completeAcquisitionBridge(
-    href,
-    runtime,
-    request,
-  );
-  assert.equal(
-    continuation,
-    `${authority}/api/auth/oauth2/code/attribution?handoff=${capability}`,
-  );
-  assert.equal(requests[1].payload.handoff, capability);
-  assert.equal(requests[1].payload.visitor_id, requests[0].payload.visitor_id);
-  assert.equal(requests[1].init.credentials, 'omit');
-  assert.equal(requests[1].init.referrerPolicy, 'no-referrer');
-  assert.equal('user_id' in requests[1].payload, false);
-});
-
-test('network failures still resume the fixed OAuth URL and do not invent successful App handoff', async () => {
-  const { runtime } = browser();
-  const href = `https://website.test/app-attribution?authority=${encodeURIComponent(authority)}&handoff=${capability}`;
-  const fail = async () => {
-    throw new Error('offline');
-  };
-  assert.equal(
-    await api.completeAcquisitionBridge(href, runtime, fail),
-    `${authority}/api/auth/oauth2/code/attribution?handoff=${capability}`,
-  );
-  await assert.rejects(api.issueAcquisitionAppLink(runtime, fail), /offline/);
-  await assert.rejects(
-    api.issueAcquisitionAppLink(runtime, async () =>
-      Response.json({ code: capability, expires_at: '2026-10-28T00:00:00Z' }),
-    ),
-    /Invalid acquisition/,
-  );
-  await assert.rejects(
-    api.issueAcquisitionAppLink(runtime, async () =>
-      Response.json({ code: 'bad', expires_at: '2026-10-30T00:00:00Z' }),
-    ),
-    /Invalid acquisition/,
-  );
-});
-
-test('blocked storage cannot create a stable visitor or stop OAuth continuation', async () => {
-  const { runtime } = browser();
-  runtime.consentUpdates.push({
-    event: 'sealos_consent_update',
-    analytics_storage: 'granted',
-  });
-  runtime.storage = {
-    getItem() {
-      throw new Error('blocked');
-    },
-    setItem() {
-      throw new Error('blocked');
-    },
-    removeItem() {
-      throw new Error('blocked');
-    },
-  };
-  assert.equal(api.readAcquisitionContext(runtime).visitor_id, undefined);
-  const href = `https://website.test/app-attribution?authority=${encodeURIComponent(authority)}&handoff=${capability}`;
-  assert.equal(
-    await api.completeAcquisitionBridge(
-      href,
-      runtime,
-      async () => new Response(null, { status: 400 }),
-    ),
-    `${authority}/api/auth/oauth2/code/attribution?handoff=${capability}`,
-  );
-});
-
-test('first campaign A and later campaign B retain separate acquisition and activation sources', () => {
-  const { runtime } = browser();
-  granted(runtime);
-  runtime.href = 'https://website.test/?utm_source=first&utm_campaign=A';
-  const first = api.readAcquisitionContext(runtime);
-  runtime.href =
-    'https://website.test/downloads?utm_source=second&utm_campaign=B';
-  runtime.referrer = 'https://website.test/';
-  const activation = api.readAcquisitionContext(runtime);
-  assert.equal(activation.source.campaign, 'A');
-  assert.equal(activation.activation_source.campaign, 'B');
-  assert.equal(activation.last_source.campaign, 'B');
-  runtime.href = `https://website.test/app-attribution?authority=${encodeURIComponent(authority)}&handoff=${capability}`;
-  runtime.referrer = `${authority}/api/auth/oauth2/code/authorize`;
-  const resumed = api.readAcquisitionContext(runtime);
-  assert.equal(resumed.visitor_id, first.visitor_id);
-  assert.equal(resumed.source.campaign, 'A');
-  assert.equal(resumed.activation_source.campaign, 'B');
-  assert.equal(resumed.last_source.campaign, 'B');
-});
-
-test('actual GTM click_id_value respects advertising permission without rewriting raw attribution', () => {
-  const { runtime } = browser();
-  granted(runtime);
-  const raw = encode({
-    version: 3,
-    first_touch: {
-      source: 'google',
-      click_id_type: 'gclid',
-      click_id_value: 'private-current-field',
-    },
-  });
-  runtime.rawAttribution = () => raw;
-  assert.equal(api.readAcquisitionContext(runtime).sea_attr, undefined);
-  assert.equal(runtime.rawAttribution(), raw);
-  runtime.consentUpdates.push({
-    event: 'sealos_consent_update',
-    ad_storage: 'granted',
-    ad_user_data: 'granted',
-  });
-  assert.equal(api.readAcquisitionContext(runtime).sea_attr, raw);
-  runtime.consentUpdates.push({
-    event: 'sealos_consent_update',
-    ad_storage: 'denied',
-  });
-  assert.equal(api.readAcquisitionContext(runtime).sea_attr, undefined);
-  assert.equal(runtime.rawAttribution(), raw);
-});
-
-test('known enhanced conversion fields require advertising permission', () => {
-  for (const key of ['hashed_user_data', 'email_sha256', 'phone_sha256']) {
-    const { runtime } = browser();
-    granted(runtime);
-    const raw = encode({
-      version: 3,
-      first_touch: {
-        source: 'google',
-        extra: { [key]: 'synthetic-hash-only' },
-      },
-    });
-    runtime.rawAttribution = () => raw;
-    assert.equal(api.readAcquisitionContext(runtime).sea_attr, undefined, key);
-    runtime.consentUpdates.push({
-      event: 'sealos_consent_update',
-      ad_storage: 'granted',
-      ad_user_data: 'granted',
-    });
-    assert.equal(api.readAcquisitionContext(runtime).sea_attr, raw, key);
-    runtime.consentUpdates.push({
-      event: 'sealos_consent_update',
-      ad_user_data: 'denied',
-    });
-    assert.equal(api.readAcquisitionContext(runtime).sea_attr, undefined, key);
-    assert.equal(runtime.rawAttribution(), raw, key);
-  }
 });
 
 test('cross-tab denial wins over stale grants even before the granting tab rereads its choice', () => {
@@ -344,7 +143,7 @@ test('a persisted denial survives initial queue history but a newly observed upd
   ]);
   assert.equal(
     api.readAcquisitionContext(runtime).visitor_id,
-    'visitor-12345678',
+    'c85cd505-fb10-4ff9-a8f4-4ba89fbe6643',
   );
   assert.equal(
     api.readAcquisitionConsent(runtime).analytics_storage,
@@ -357,19 +156,21 @@ test('cross-tab revocation also invalidates cached advertising permission', () =
   const { runtime: tabB } = browser();
   tabB.storage = tabA.storage;
   granted(tabA);
-  const raw = encode({
-    version: 3,
-    first_touch: { source: 'google', click_id_value: 'synthetic-click' },
-  });
-  tabA.rawAttribution = () => raw;
   tabA.consentUpdates.push([
     'consent',
     'update',
-    { ad_storage: 'granted', ad_user_data: 'granted' },
+    {
+      ad_storage: 'granted',
+      ad_user_data: 'granted',
+      ad_personalization: 'granted',
+    },
   ]);
-  assert.equal(api.readAcquisitionContext(tabA).sea_attr, raw);
+  assert.equal(api.readAcquisitionContext(tabA).consent.ad_storage, 'granted');
   api.setAcquisitionAnalyticsConsent(tabB, false);
-  assert.equal(api.readAcquisitionContext(tabA).sea_attr, undefined);
+  assert.equal(
+    api.readAcquisitionContext(tabA).consent.ad_storage,
+    'unspecified',
+  );
   tabA.consentUpdates.push([
     'consent',
     'update',
@@ -378,7 +179,8 @@ test('cross-tab revocation also invalidates cached advertising permission', () =
   const renewed = api.readAcquisitionContext(tabA);
   assert.equal(renewed.consent.analytics_storage, 'granted');
   assert.equal(renewed.consent.ad_user_data, 'unspecified');
-  assert.equal(renewed.sea_attr, undefined);
+  assert.equal(renewed.consent.ad_storage, 'unspecified');
+  assert.equal(renewed.consent.ad_personalization, 'unspecified');
 });
 
 test('consent subscriptions ignore source and visitor storage writes and detach cleanly', () => {
@@ -439,7 +241,7 @@ test('queue truncation cannot replay a grant that preceded a consumed denial', (
   ]);
   assert.equal(
     api.readAcquisitionContext(runtime).visitor_id,
-    'visitor-12345678',
+    'c85cd505-fb10-4ff9-a8f4-4ba89fbe6643',
   );
 });
 
@@ -466,172 +268,202 @@ test('a bounded queue rotation with unchanged length cannot hide a new denial', 
   assert.equal(api.readAcquisitionConsent(runtime).analytics_storage, 'denied');
 });
 
-// Execute the real control with browser and React boundaries supplied by the test.
-// Assertions cover outbound requests, navigation and consent rather than JSX structure.
-const choiceSource = await readFile(
-  'components/analytics/acquisition-choice.tsx',
-  'utf8',
-);
-function choiceHarness(
-  request = async () =>
-    Response.json({ code: capability, expires_at: '2026-10-29T00:10:00Z' }),
-) {
-  const { runtime, values } = browser();
-  const navigations = [];
-  const requests = [];
-  const states = [];
-  let cursor = 0;
-  const react = {
-    useState(initial) {
-      const index = cursor++;
-      if (!(index in states)) states[index] = initial;
-      return [
-        states[index],
-        (next) => {
-          states[index] = next;
-        },
-      ];
-    },
-    useEffect() {},
-  };
-  const exports = {};
-  const componentApi = {
-    ...api,
-    createBrowserAcquisitionRuntime: () => runtime,
-    issueAcquisitionAppLink: () =>
-      api.issueAcquisitionAppLink(runtime, async (...args) => {
-        requests.push({ url: args[0], payload: JSON.parse(args[1].body) });
-        return request(...args);
-      }),
-  };
-  const jsx = (type, props) => ({ type, props });
-  const componentCode = ts.transpileModule(choiceSource, {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      jsx: ts.JsxEmit.ReactJSX,
-      esModuleInterop: true,
-    },
-  }).outputText;
-  vm.runInNewContext(componentCode, {
-    exports,
-    require: (name) =>
-      name === 'react'
-        ? react
-        : name === 'react/jsx-runtime'
-          ? { jsx, jsxs: jsx }
-          : componentApi,
-    window: {
-      location: { assign: (url) => navigations.push(url) },
-      dispatchEvent() {},
-    },
-    Event,
-  });
-  const find = (node, type) => {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === type) return node;
-    for (const child of [node.props?.children].flat(Infinity)) {
-      const result = find(child, type);
-      if (result) return result;
-    }
-  };
-  const render = () => {
-    cursor = 0;
-    return exports.AcquisitionChoice();
-  };
-  return {
-    runtime,
-    values,
-    navigations,
-    requests,
-    control: (type) => find(render(), type),
-  };
+function payload(cookies) {
+  const value = cookies.at(-1).split(';')[0].split('=')[1];
+  return JSON.parse(Buffer.from(value, 'base64url').toString('utf8'));
 }
+test('official root/www Cookie shares a bounded UTF-8 visitor snapshot for console OAuth', () => {
+  const { runtime, cookies } = browser();
+  granted(runtime);
+  runtime.href =
+    'https://www.sealos.io/downloads?utm_source=搜索&utm_campaign=推广';
+  const context = api.readAcquisitionContext(runtime);
+  const cookie = cookies.at(-1);
+  assert.match(cookie, /^sealos_acquisition_v1=[A-Za-z0-9_-]+;/);
+  assert.match(
+    cookie,
+    /Domain=sealos.io; Path=\/; Secure; SameSite=Lax; Max-Age=2592000/,
+  );
+  const saved = payload(cookies);
+  assert.equal(saved.realm, 'global');
+  assert.equal(saved.visitor_id, context.visitor_id);
+  assert.equal(saved.source.source, '搜索');
+  assert.equal(saved.platform_ids, undefined);
+  assert.equal(saved.sea_attr, undefined);
+  assert.equal('user_id' in saved, false);
+  const { runtime: other, cookies: more } = browser();
+  granted(other);
+  other.cookie = cookie.split(';')[0];
+  other.href = 'https://sealos.io/';
+  other.randomId = () => {
+    throw new Error('must reuse existing shared visitor');
+  };
+  assert.equal(
+    api.readAcquisitionContext(other).visitor_id,
+    context.visitor_id,
+  );
+  assert.equal(payload(more).source.source, '搜索');
+});
+test('tenant, lookalike, insecure and development hosts cannot write shared Cookie', () => {
+  for (const host of [
+    'https://hzh.sealos.io',
+    'https://tenant.sealos.io',
+    'https://sealos.io.attacker.test',
+    'http://sealos.io',
+    'https://sealos.io:3000',
+  ]) {
+    const { runtime, cookies } = browser();
+    runtime.href = host;
+    granted(runtime);
+    api.readAcquisitionContext(runtime);
+    assert.equal(cookies.length, 0, host);
+  }
+});
+test('withdrawal clears shared Cookie, new identity and source without retaining aliases', () => {
+  const { runtime, cookies, values } = browser();
+  granted(runtime);
+  api.readAcquisitionContext(runtime);
+  api.setAcquisitionAnalyticsConsent(runtime, false);
+  assert.match(cookies.at(-1), /^sealos_acquisition_v1=;.*Max-Age=0$/);
+  assert.equal(values.has('sealos_acquisition_visitor_v1'), false);
+  assert.equal(values.has('sealos_acquisition_source_v1'), false);
+});
+test('campaign PII and URL secrets are omitted from the shared snapshot', () => {
+  for (const campaign of [
+    'someone@example.com',
+    '13800138000',
+    'https://attacker.test/token',
+    'secret%0Avalue',
+  ]) {
+    const { runtime, cookies } = browser();
+    granted(runtime);
+    runtime.href = `https://sealos.io/downloads?utm_campaign=${campaign}&token=secret#private`;
+    runtime.referrer = 'https://user:password@example.com/path?secret=true';
+    api.readAcquisitionContext(runtime);
+    const saved = payload(cookies);
+    assert.equal(saved.source.campaign, undefined);
+    assert.equal(saved.source.referrer, undefined);
+    assert.equal(saved.source.landing_page, 'https://sealos.io/downloads');
+  }
+});
+test('Cookie blocked storage cannot create an identity or affect downloads', () => {
+  const { runtime, cookies } = browser();
+  granted(runtime);
+  runtime.storage.setItem = () => {
+    throw new Error('blocked');
+  };
+  assert.equal(api.readAcquisitionContext(runtime).visitor_id, undefined);
+  assert.equal(cookies.length, 0);
+});
 
-test('direct open with unknown or denied consent uses the plain link without creating permission or an issue request', async () => {
-  for (const denied of [false, true]) {
-    const h = choiceHarness();
-    if (denied) api.setAcquisitionAnalyticsConsent(h.runtime, false);
-    const before = api.readAcquisitionConsent(h.runtime).analytics_storage;
-    await h.control('button').props.onClick();
-    assert.deepEqual(h.navigations, ['zcode://sealos/open']);
-    assert.equal(h.requests.length, 0);
+test('unknown permission does not erase an existing root-domain journey before a www choice', () => {
+  const { runtime, cookies } = browser();
+  runtime.href = 'https://www.sealos.io/downloads';
+  api.readAcquisitionContext(runtime);
+  assert.equal(cookies.length, 0);
+});
+
+test('shared root/www visitor wins over an older origin-local visitor and source', () => {
+  const first = browser();
+  granted(first.runtime);
+  first.runtime.href = 'https://sealos.io/?utm_source=original';
+  const context = api.readAcquisitionContext(first.runtime);
+  const other = browser();
+  granted(other.runtime);
+  other.runtime.href = 'https://www.sealos.io/?utm_source=later';
+  other.values.set(
+    'sealos_acquisition_visitor_v1',
+    '11111111-1111-4111-8111-111111111111',
+  );
+  other.values.set(
+    'sealos_acquisition_source_v1',
+    JSON.stringify({
+      first_touch: {
+        source: 'stale',
+        landing_page: 'https://www.sealos.io/',
+        timestamp: '2026-10-28T00:00:00Z',
+      },
+    }),
+  );
+  other.runtime.cookie = first.cookies.at(-1).split(';')[0];
+  const after = api.readAcquisitionContext(other.runtime);
+  assert.equal(after.visitor_id, context.visitor_id);
+  assert.equal(after.source.source, 'original');
+});
+
+test('Cookie carries only the minimal backend fields and is bounded after UTF-8 encoding', () => {
+  const { runtime, cookies } = browser();
+  granted(runtime);
+  runtime.href =
+    'https://sealos.io/' +
+    'a'.repeat(400) +
+    '?utm_source=' +
+    '搜'.repeat(100) +
+    '&utm_medium=' +
+    '媒'.repeat(100) +
+    '&utm_campaign=' +
+    '广'.repeat(100);
+  runtime.referrer = 'https://search.test/' + 'b'.repeat(400);
+  runtime.rawAttribution = () => {
+    throw new Error('must not read sea_attr');
+  };
+  runtime.rybbitUserId = () => {
+    throw new Error('must not read SDK aliases');
+  };
+  api.readAcquisitionContext(runtime);
+  const saved = payload(cookies);
+  assert.deepEqual(Object.keys(saved).sort(), [
+    'consent',
+    'realm',
+    'source',
+    'version',
+    'visitor_id',
+  ]);
+  assert.ok(
+    Buffer.from(cookies.at(-1).split(';')[0].split('=')[1], 'base64url')
+      .length <= 1800,
+  );
+  assert.ok(saved.source.landing_page.length <= 250);
+  assert.ok(saved.source.referrer.length <= 250);
+  assert.equal(saved.platform_ids, undefined);
+  assert.equal(saved.sea_attr, undefined);
+});
+
+test('invalid shared identities and malformed source cannot become a new Cookie', () => {
+  for (const data of [
+    {
+      version: 1,
+      realm: 'china',
+      visitor_id: '11111111-1111-4111-8111-111111111111',
+    },
+    { version: 1, realm: 'global', visitor_id: 'not-a-uuid' },
+    {
+      version: 1,
+      realm: 'global',
+      visitor_id: '11111111-1111-4111-8111-111111111111',
+      consent: { analytics_storage: 'denied' },
+    },
+  ]) {
+    const { runtime, cookies } = browser();
+    granted(runtime);
+    runtime.cookie = api.ACQUISITION_COOKIE + '=' + encode(data);
     assert.equal(
-      api.readAcquisitionConsent(h.runtime).analytics_storage,
-      before,
+      api.readAcquisitionContext(runtime).visitor_id,
+      runtime.randomId(),
     );
-    assert.equal(h.values.has('sealos_acquisition_visitor_v1'), false);
+    assert.equal(payload(cookies).source.source, 'campaign');
   }
 });
 
-test('direct open with actual consent issues and opens a capability carrying the current visitor', async () => {
-  const h = choiceHarness();
-  granted(h.runtime);
-  await h.control('button').props.onClick();
-  assert.equal(h.requests.length, 1);
-  assert.equal(h.requests[0].payload.visitor_id, 'visitor-12345678');
-  assert.equal(h.requests[0].payload.consent.analytics_storage, 'granted');
-  assert.equal(new URL(h.navigations[0]).searchParams.get('code'), capability);
-  assert.equal(new URL(h.navigations[0]).pathname, '/acquisition');
-});
-
-test('direct open reads the latest decision at click time rather than a stale checkbox render', async () => {
-  const h = choiceHarness();
-  granted(h.runtime);
-  const button = h.control('button');
-  api.setAcquisitionAnalyticsConsent(h.runtime, false);
-  await button.props.onClick();
-  assert.equal(h.requests.length, 0);
-  assert.deepEqual(h.navigations, ['zcode://sealos/open']);
-});
-
-test('direct open falls back to the plain link when permission is revoked while issue is pending', async () => {
-  let respond;
-  const h = choiceHarness(
-    () =>
-      new Promise((resolve) => {
-        respond = resolve;
-      }),
-  );
-  granted(h.runtime);
-  const pendingOpen = h.control('button').props.onClick();
-  const busyButton = h.control('button');
-  assert.equal(busyButton.props['aria-disabled'], true);
-  await busyButton.props.onClick();
-  assert.equal(h.requests.length, 1);
-  api.setAcquisitionAnalyticsConsent(h.runtime, false);
-  respond(
-    Response.json({ code: capability, expires_at: '2026-10-29T00:10:00Z' }),
-  );
-  await pendingOpen;
-  assert.deepEqual(h.navigations, ['zcode://sealos/open']);
+test('Cookie write failures do not interrupt consented observation or ordinary navigation', () => {
+  const { runtime } = browser();
+  granted(runtime);
+  runtime.writeCookie = () => {
+    throw new Error('Cookie blocked');
+  };
   assert.equal(
-    api.readAcquisitionConsent(h.runtime).analytics_storage,
-    'denied',
+    api.readAcquisitionContext(runtime).visitor_id,
+    runtime.randomId(),
   );
-});
-
-test('direct open still opens the plain App link after issue failure', async () => {
-  const h = choiceHarness(async () => {
-    throw new Error('offline');
-  });
-  granted(h.runtime);
-  await h.control('button').props.onClick();
-  assert.deepEqual(h.navigations, ['zcode://sealos/open']);
-  assert.equal(h.control('button').props['aria-disabled'], false);
-});
-
-test('only an explicit checkbox change updates analytics permission', () => {
-  const h = choiceHarness();
-  h.control('input').props.onChange({ currentTarget: { checked: true } });
-  assert.equal(
-    api.readAcquisitionConsent(h.runtime).analytics_storage,
-    'granted',
-  );
-  h.control('input').props.onChange({ currentTarget: { checked: false } });
-  assert.equal(api.readAcquisitionContext(h.runtime).visitor_id, undefined);
-  assert.equal(
-    api.readAcquisitionConsent(h.runtime).analytics_storage,
-    'denied',
-  );
-  assert.equal(h.navigations.length, 0);
+  assert.doesNotThrow(() => api.setAcquisitionAnalyticsConsent(runtime, false));
 });

@@ -1,30 +1,50 @@
-# Website to Sealos App Acquisition Handoff
+# Website to Sealos App visitor linkage
 
-Approved scope: [labring/sealox#584](https://github.com/labring/sealox/issues/584), with phase-one delivery through [#581](https://github.com/labring/sealox/issues/581). This PR implements the website owner only; native redemption, OAuth persistence and downstream event collection are companion changes.
+This website change accompanies [App #596](https://github.com/labring/sealox/pull/596) and [console OAuth #7421](https://github.com/labring/sealos/pull/7421), implementing the visitor linkage in [#584](https://github.com/labring/sealox/issues/584). Overseas events use the existing Web GTM `GTM-5DTRN2V3` and GA4 `G-YF5VHZSTE0`; domestic events use the existing Rybbit destination. No new analytics database, MP relay, sGTM deployment or Brain change is required.
 
-## Behavior and ownership
+## Journey and ownership
 
-- The website owns a random visitor ID and first/last source snapshots only after an actual analytics permission. The download/invite checkbox provides a deliberate analytics-only choice; the OAuth continuation page asks only when the choice is unknown. Advertising permission is never manufactured.
-- Persisted analytics decisions synchronize across tabs and page navigation. Each page consumes new Consent Mode queue updates once. On initialization, external storage changes or queue truncation, unconsumed existing history can only tighten a permission to denied; it cannot restore granted over a newer denial. Consumed decisions are never replayed to veto a newer cross-tab choice. A genuinely new observed tracker update may grant again. Cached advertising grants are reset on an external decision change. The choice, observer and continuation page synchronize consent-key storage events only, so source writes cannot cause a cross-tab event loop. An unknown or declined choice sends neither visitor ID, source, raw attribution nor platform aliases. Declining clears the new local identity/source keys and does not block login or opening Sealos.
-- New acquisition_visit and download_click events carry visitor_id for future joins. A download click is not an installation. Existing GA cookie IDs and an explicitly identified Rybbit user may be handed off as aliases when allowed; getUserId is not assumed to expose Rybbit's anonymous server identity. Previously uninstrumented histories cannot be recovered by the new ID.
-- First source is retained as source, the latest website touch as last_source and the latest qualified non-direct touch as activation_source. Internal OAuth bridge navigation does not replace a campaign. Landing/referrer query strings and fragments are not forwarded. Existing sea_attr is forwarded byte-for-byte only when its schema is supported and its ad identifiers are allowed; otherwise it is omitted rather than rewritten under an existing hash.
-- The unlocalized /app-attribution page has a tracker-free HTML layout and no-referrer policy. A one-time capability is removed from the address bar before subsequent navigation. The original capability survives React StrictMode effect replay, and a single pending POST is reused.
-- The only accepted authority is the site's configured exact public-cloud origin. Reject credentials, path/query overrides and lookalike hosts. There is no caller-supplied return URL.
+1. A visitor explicitly permits analytics on the website. The website creates a random UUID and retains the first consented source. Unknown or denied permission creates no identified website event.
+2. The observer writes `sealos_acquisition_v1` synchronously before ordinary installer navigation. On HTTPS `sealos.io` and `www.sealos.io`, the Cookie uses `Domain=sealos.io; Path=/; Secure; SameSite=Lax; Max-Age=2592000`. Root and www can reuse an existing shared visitor after consent. Unknown permission must not delete another origin's journey; explicit denial clears the shared Cookie and this feature's local visitor/source state.
+3. The visitor downloads the ordinary installer, opens the App and signs in through the system browser's console OAuth page. The console reads the shared Cookie, validates it and associates its visitor with the server-verified account. The App retains its own installation/client ID. Cookie data never selects or authenticates the account.
+4. The website's `acquisition_visit` and `download_click` events carry the same visitor ID. The console and App emit `visitor_linked` with the verified User-ID. Events enter the existing GA4 destination. The additive website GTM patch is part of this PR; the App/console patch is delivered separately.
 
-## Cross-repository contract
+The Cookie is unpadded UTF-8 Base64URL JSON, at most 1800 decoded bytes:
 
-OAuth bridge URL: /app-attribution?handoff=<short-capability>&authority=<configured-origin>.
+```json
+{
+  "version": 1,
+  "realm": "global",
+  "visitor_id": "<random UUID>",
+  "consent": {
+    "analytics_storage": "granted",
+    "ad_storage": "unspecified",
+    "ad_user_data": "unspecified",
+    "ad_personalization": "unspecified"
+  },
+  "source": { "source": "google", "medium": "cpc", "campaign": "launch" }
+}
+```
 
-POST /api/auth/oauth2/code/attribution on that authority with version:1, handoff, consent and the permitted visitor_id / sea_attr / source / activation_source / last_source / platform_ids. Consent has analytics_storage, ad_storage, ad_user_data and ad_personalization, each granted/denied/unspecified. Source uses source, medium, campaign, landing_page, referrer and an ISO8601 timestamp.
+Source additionally permits sanitized `landing_page`, `referrer` and an ISO timestamp. Labels are bounded to 100 characters; URLs to 250 characters with no credentials, query or fragment. Excess source data is omitted before an oversized Cookie can be written. Advertising permissions are never invented by the analytics checkbox. Same-origin cross-tab decisions synchronize through the existing consent storage key; consumed historical grants cannot undo withdrawal.
 
-After the POST finishes or fails (five-second bound), navigate only to the fixed authority /api/auth/oauth2/code/attribution?handoff=<same-capability> GET. The authentication backend owns browser-cookie validation and continuation of the exact original OAuth request. Website failure cannot create an account binding or block normal authentication.
+## Retained and removed components
 
-The download/invite control opens the App directly using the consent read at click time, with no intermediate confirmation page. Unknown or denied consent uses zcode://sealos/open without an issue request. A grant revoked during the request also falls back to the plain link. Network failure still opens the plain link. The explicit consented open-App action POSTs the same permitted context without handoff to /api/marketing/acquisition/issue. A successful raw JSON response contains code and ISO8601 expires_at. Only a bounded unexpired code produces zcode://sealos/acquisition?code=...&authority=.... No OAuth access/refresh token, PKCE verifier, account ID or installation secret enters the website. The /app-attribution page only completes valid OAuth handoffs; missing or invalid handoffs show a clear restart-sign-in state. Existing grants and denials continue automatically without another prompt.
+| Component                                                                                         | Decision and evidence                                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Analytics choice, visitor UUID, first source, observer, ordinary download anchors                 | Retained: removing consent or identity breaks the privacy/linkage contract; installer navigation must remain independent.                                               |
+| Shared-domain Cookie                                                                              | Required: the console cannot read the website's origin-local storage. Local browser testing observes the Cookie on the console's real HTTP request.                     |
+| `/app-attribution`, capability POST/continuation, acquisition issue API and acquisition deep link | Removed: backend #7421 consumes the Cookie during normal OAuth; its linkage functions work without those old endpoints.                                                 |
+| New Cookie's GA/Rybbit aliases and copied `sea_attr`                                              | Removed: the same visitor/account/installation linkage succeeds without them. GA client ID may help diagnose historical SDK behavior but is not a required linkage key. |
+| Separate activation/latest source state                                                           | Removed: the selected contract consumes one first-source snapshot.                                                                                                      |
+| Existing Web `lib/attribution-url.ts` `sea_attr` URL decoration                                   | Retained unchanged: it serves the pre-existing Web attribution journey. The new Cookie does not duplicate or redefine it.                                               |
 
-## Verification and rollout
+## Events, configuration and acceptance
 
-Run node --test scripts/test-acquisition-handoff.mjs for the complete website-side request contract, consent, first-source retention, raw attribution compatibility, exact-origin validation, storage failure and failed-network continuation. Typecheck and build with each repository's existing commands. Browser smoke verifies the standalone bridge renders, strips capability query parameters and rejects an untrusted authority without contacting it.
+Only currently consented observations emit `acquisition_visit` or `download_click` with `visitor_id`, `surface=website`, `product_edition=global`, `analytics_consent=granted` and nullable `acquisition_source`, `acquisition_medium`, `acquisition_campaign`. Scalar fields explicitly clear absent values. The new events exclude raw URLs, credentials, `sea_attr` and account IDs. A download click is not an installation.
 
-Merge/release with the companion authentication backend and native App support. Validate once in China and once in Global using a real browser download, App first open, browser OAuth, trusted account binding and later deployment/payment queries. A passing website test or HTTP response does not prove a production account binding or advertising conversion.
+Generate and test the additive website tags using `scripts/gtm-acquisition/generate.cjs` and its tests. Follow that directory's README to merge-import into the existing **Web** container. Data Layer pushes alone do not complete GA collection: official importer/Preview verification and publication are required operational steps. No production GTM setting is changed by this PR.
 
-Known limit: first-time users who have not consented have no persistent visitor history. Granting permission later starts observed linkage; it does not retroactively recover missing events. Global GTM event-tag configuration and each destination's query evidence remain operational acceptance work. No sGTM, ad platform secret or production consent declaration is deployed by this PR.
+Run `node --test scripts/test-acquisition-handoff.mjs`, `node --test scripts/gtm-acquisition/generate.test.cjs`, the unchanged `node scripts/verify-attribution-url.mjs`, `pnpm lint` and `pnpm build`. Local tests and isolated browser/real-backend interoperability demonstrate the Cookie and module contract; they do not prove production OAuth, GA report ingestion, GA reporting identity or advertising conversion.
+
+Use the same system-browser profile for the website and App OAuth. Different browser profiles, private browsing, Cookie/storage blocking, expired/cleared Cookies, unknown/denied permission or a China/Global mismatch remain unmatched and must not block downloading or signing in. Granting later starts observed linkage; it does not recover unobserved history. `visitor_id` events and User-ID provide explicit linkage data, not a promise that GA will retroactively merge every anonymous event or restore default advertising attribution. Validate consented visits, download, OAuth, account/mode changes and deployment events in both realms with the companion PRs before release acceptance; payment events require their own verified producers.
