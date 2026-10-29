@@ -8,6 +8,7 @@ import {
   issueAcquisitionAppLink,
   readAcquisitionConsent,
   setAcquisitionAnalyticsConsent,
+  subscribeAcquisitionConsent,
 } from '@/lib/acquisition-handoff';
 
 export function AppAttribution() {
@@ -29,6 +30,12 @@ export function AppAttribution() {
     // The page contains no trackers. Remove the short capability from the
     // address bar before any subsequent link can carry it as a referrer.
     window.history.replaceState(null, '', window.location.pathname);
+    return subscribeAcquisitionConsent(() => {
+      setConsent(
+        readAcquisitionConsent(createBrowserAcquisitionRuntime())
+          .analytics_storage,
+      );
+    });
   }, []);
   const bridge = href ? getAcquisitionBridgeTarget(href) : undefined;
   const invalidBridge = href
