@@ -186,6 +186,57 @@ test('cross-tab revocation also invalidates cached advertising permission', () =
   assert.equal(renewed.consent.ad_personalization, 'unspecified');
 });
 
+test('real GTM queue updates notify the observer without a manually dispatched DOM event', async () => {
+  const previousWindow = globalThis.window;
+  const target = new EventTarget();
+  target.dataLayer = [];
+  globalThis.window = target;
+  try {
+    const { runtime, cookies } = browser();
+    runtime.consentUpdates = target.dataLayer;
+    let calls = 0;
+    const originalPush = target.dataLayer.push;
+    const unsubscribe = api.subscribeAcquisitionConsent(() => {
+      calls++;
+      api.readAcquisitionContext(runtime);
+    });
+    target.dataLayer.push([
+      'consent',
+      'default',
+      { analytics_storage: 'denied' },
+    ]);
+    target.dataLayer.push({ event: 'page_view' });
+    await Promise.resolve();
+    assert.equal(calls, 0);
+    assert.equal(cookies.length, 0);
+    const pushUpdate = function () {
+      return target.dataLayer.push(arguments);
+    };
+    assert.equal(
+      pushUpdate('consent', 'update', { analytics_storage: 'granted' }),
+      3,
+    );
+    await Promise.resolve();
+    assert.equal(calls, 1);
+    assert.equal(payload(cookies).visitor_id, runtime.randomId());
+    target.dataLayer.push({
+      event: 'sealos_consent_update',
+      analytics_storage: 'denied',
+    });
+    await Promise.resolve();
+    assert.equal(calls, 2);
+    assert.match(cookies.at(-1), /Max-Age=0$/);
+    unsubscribe();
+    assert.equal(target.dataLayer.push, originalPush);
+    pushUpdate('consent', 'update', { analytics_storage: 'granted' });
+    await Promise.resolve();
+    assert.equal(calls, 2);
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window;
+    else globalThis.window = previousWindow;
+  }
+});
+
 test('consent subscriptions ignore source and visitor storage writes and detach cleanly', () => {
   const previousWindow = globalThis.window;
   const target = new EventTarget();
@@ -619,9 +670,14 @@ function componentHarness(file, component, prepare = () => {}) {
               ...api,
               createBrowserAcquisitionRuntime: () => runtime,
               subscribeAcquisitionConsent(listener) {
-                target.addEventListener('sealos_consent_update', listener);
-                return () =>
-                  target.removeEventListener('sealos_consent_update', listener);
+                const previousWindow = globalThis.window;
+                globalThis.window = target;
+                try {
+                  return api.subscribeAcquisitionConsent(listener);
+                } finally {
+                  if (previousWindow === undefined) delete globalThis.window;
+                  else globalThis.window = previousWindow;
+                }
               },
             },
   });
@@ -670,6 +726,81 @@ const observerSource = await readFile(
   'components/analytics/acquisition-observer.tsx',
   'utf8',
 );
+
+test('the actual observer follows real GTM pushes, preserves a later GTM push wrapper and stops on denial', async () => {
+  const h = componentHarness(observerSource, 'AcquisitionObserver');
+  const subscribedPush = h.target.dataLayer.push;
+  let gtmCalls = 0;
+  const gtmPush = function (...items) {
+    gtmCalls++;
+    return subscribedPush.apply(this, items);
+  };
+  h.target.dataLayer.push = gtmPush;
+  h.target.dataLayer.push([
+    'consent',
+    'default',
+    { analytics_storage: 'denied' },
+  ]);
+  await Promise.resolve();
+  assert.equal(h.events().length, 0);
+  h.target.dataLayer.push([
+    'consent',
+    'update',
+    { analytics_storage: 'granted' },
+  ]);
+  await Promise.resolve();
+  assert.equal(h.events().length, 1);
+  const visitor = payload(h.cookies).visitor_id;
+  h.click();
+  assert.equal(h.events()[1].visitor_id, visitor);
+  h.target.dataLayer.push([
+    'consent',
+    'update',
+    { analytics_storage: 'denied' },
+  ]);
+  await Promise.resolve();
+  assert.match(h.cookies.at(-1), /Max-Age=0$/);
+  assert.equal(h.click().defaultPrevented, false);
+  assert.equal(h.events().length, 2);
+  h.cleanup();
+  assert.equal(
+    h.target.dataLayer.push,
+    gtmPush,
+    'cleanup must preserve the installed GTM handler',
+  );
+  h.target.dataLayer.push([
+    'consent',
+    'update',
+    { analytics_storage: 'granted' },
+  ]);
+  await Promise.resolve();
+  assert.equal(h.events().length, 2);
+  assert.ok(gtmCalls > 0);
+});
+
+test('queued GTM grants cannot create a visitor after withdrawal or observer cleanup', async () => {
+  const h = componentHarness(observerSource, 'AcquisitionObserver');
+  h.target.dataLayer.push([
+    'consent',
+    'update',
+    { analytics_storage: 'granted' },
+  ]);
+  h.target.dataLayer.push([
+    'consent',
+    'update',
+    { analytics_storage: 'denied' },
+  ]);
+  await Promise.resolve();
+  assert.equal(h.events().length, 0);
+  h.target.dataLayer.push([
+    'consent',
+    'update',
+    { analytics_storage: 'granted' },
+  ]);
+  h.cleanup();
+  await Promise.resolve();
+  assert.equal(h.events().length, 0);
+});
 
 test('the actual observer writes the Cookie before direct download and emits the complete global wire', () => {
   const h = componentHarness(observerSource, 'AcquisitionObserver');

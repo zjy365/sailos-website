@@ -186,15 +186,45 @@ export function setAcquisitionAnalyticsConsent(
   return consent;
 }
 export function subscribeAcquisitionConsent(listener: () => void): () => void {
+  const runtimeWindow = window as Window & { dataLayer?: unknown[] };
+  const queue = (runtimeWindow.dataLayer ||= []);
+  const previousPush = queue.push;
+  let active = true;
+  let scheduled = false;
+  // GTM/gtag consent updates are Data Layer entries, not browser DOM events.
+  // Keep the existing push contract and defer observation beyond GTM's call stack.
+  const push = function (this: unknown[], ...items: unknown[]) {
+    const length = previousPush.apply(this, items);
+    const hasUpdate = items.some((value) => {
+      const item: Record<string, unknown> | undefined =
+        object(value) ||
+        (Array.isArray(value) ? { 0: value[0], 1: value[1] } : undefined);
+      return (
+        item?.['event'] === 'sealos_consent_update' ||
+        (item?.['0'] === 'consent' && item?.['1'] === 'update')
+      );
+    });
+    if (active && this === queue && hasUpdate && !scheduled) {
+      scheduled = true;
+      queueMicrotask(() => {
+        scheduled = false;
+        if (active) listener();
+      });
+    }
+    return length;
+  };
+  queue.push = push;
   const storage = (event: StorageEvent) => {
     // Ignore source/visitor writes so cross-tab updates cannot cause a read/write loop.
     if (event.key === CONSENT_KEY || event.key === null) listener();
   };
-  window.addEventListener('sealos_consent_update', listener);
-  window.addEventListener('storage', storage);
+  runtimeWindow.addEventListener('sealos_consent_update', listener);
+  runtimeWindow.addEventListener('storage', storage);
   return () => {
-    window.removeEventListener('sealos_consent_update', listener);
-    window.removeEventListener('storage', storage);
+    active = false;
+    if (queue.push === push) queue.push = previousPush;
+    runtimeWindow.removeEventListener('sealos_consent_update', listener);
+    runtimeWindow.removeEventListener('storage', storage);
   };
 }
 function clearIdentity(runtime: AcquisitionRuntime, eraseCookie = true): void {

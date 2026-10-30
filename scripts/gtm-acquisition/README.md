@@ -38,6 +38,8 @@ Each tag requires its exact event name, actual HTTPS `sealos.io` or `www.sealos.
 
 The existing container provides Consent Mode Default (denied), Consent Mode Update on `sealos_consent_update`, and the Web Google tag. The observer projects the current explicit or saved analytics choice through that existing update event **before** the visit. It sends only granted/denied tracker values and deduplicates its permission snapshot across effect replay. Unspecified advertising permissions remain denied; saved analytics permission does not restore old advertising grants. It does not add a second consent manager, SDK or event queue. Verify these existing container prerequisites during import/Preview, because exported configuration can change independently of this repository.
 
+The website subscribes to real Data Layer consent updates as well as existing DOM/storage notifications. A CMP can use its normal `gtag('consent', 'update', ...)` or `sealos_consent_update` push without a separate DOM dispatch. This does not create consent: the existing default remains denied, and production must still supply a real analytics grant. The domestic website's Rybbit configuration policy is not used here.
+
 ## Import and release acceptance
 
 1. Open existing **Web** container `GTM-5DTRN2V3`, create a dedicated workspace and export its current configuration for backup.
