@@ -40,6 +40,8 @@ The existing container provides Consent Mode Default (denied), Consent Mode Upda
 
 The website subscribes to real Data Layer consent updates as well as existing DOM/storage notifications. A CMP can use its normal `gtag('consent', 'update', ...)` or `sealos_consent_update` push without a separate DOM dispatch. This does not create consent: the existing default remains denied, and production must still supply a real analytics grant. The domestic website's Rybbit configuration policy is not used here.
 
+`visitor_id` is an event parameter, never a Google User-ID or client ID. These website tags must not map it to identity settings. The console and App use only authenticated userUid as User-ID. Validate the same GA4 destination, browser client-ID continuity, and Observed/Blended reporting identity; a Device-based report will count devices independently even when User-ID is supplied.
+
 ## Import and release acceptance
 
 1. Open existing **Web** container `GTM-5DTRN2V3`, create a dedicated workspace and export its current configuration for backup.

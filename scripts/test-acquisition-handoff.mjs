@@ -843,6 +843,36 @@ test('the actual observer writes the Cookie before direct download and emits the
   h.cleanup();
 });
 
+test('website visitor events never become GA account IDs or replace browser client IDs', () => {
+  const h = componentHarness(observerSource, 'AcquisitionObserver');
+  h.target.dataLayer.push({
+    user_id: 'existing-account',
+    client_id: 'existing-browser',
+  });
+  h.consent(true);
+  h.click();
+  h.replayEffect();
+  const visitor = payload(h.cookies).visitor_id;
+  assert.ok(h.events().length > 0);
+  assert.ok(h.events().every((event) => event.visitor_id === visitor));
+  const identityWrites = h.target.dataLayer.filter(
+    (item) =>
+      Object.hasOwn(item, 'user_id') || Object.hasOwn(item, 'client_id'),
+  );
+  assert.deepEqual(JSON.parse(JSON.stringify(identityWrites)), [
+    { user_id: 'existing-account', client_id: 'existing-browser' },
+  ]);
+  h.consent(false);
+  assert.equal(
+    h.target.dataLayer.filter(
+      (item) =>
+        Object.hasOwn(item, 'user_id') || Object.hasOwn(item, 'client_id'),
+    ).length,
+    1,
+  );
+  h.cleanup();
+});
+
 test('effect replay does not duplicate visits and missing scalar source fields explicitly clear stale Data Layer values', () => {
   const h = componentHarness(observerSource, 'AcquisitionObserver');
   h.runtime.href = 'https://sealos.io/downloads';
